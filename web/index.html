@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Mud Magic — AI Ceramic Design Studio</title>
+<meta name="description" content="Turn your imagination into real ceramic art. Shape and glaze a mug in a live 3D studio, then let our kiln do the rest." />
+<link rel="icon" href="data:," />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-secondary-container": "#5c6853", "on-background": "#1f1b17", "on-error-container": "#93000a",
+          "inverse-surface": "#352f2b", "on-tertiary": "#ffffff", "surface-container": "#f6ece5",
+          "on-tertiary-container": "#fff4ea", "on-secondary": "#ffffff", "surface-container-low": "#fcf2eb",
+          "on-primary-fixed-variant": "#733520", "secondary-fixed-dim": "#becbb2", "on-primary-fixed": "#390b00",
+          "error": "#ba1a1a", "on-secondary-fixed": "#141e0f", "inverse-primary": "#ffb59d",
+          "surface-bright": "#fff8f5", "on-primary": "#ffffff", "primary-fixed": "#ffdbd0", "primary": "#88452f",
+          "surface-container-lowest": "#ffffff", "surface-container-high": "#f0e6e0", "on-surface-variant": "#54433e",
+          "secondary-fixed": "#dae7cd", "tertiary": "#645643", "on-error": "#ffffff", "on-primary-container": "#fff4f1",
+          "tertiary-fixed": "#f4e0c7", "on-secondary-fixed-variant": "#3f4a37", "primary-container": "#a65d45",
+          "surface-variant": "#ebe1da", "outline-variant": "#d9c1bb", "outline": "#86736d",
+          "tertiary-container": "#7d6e5a", "primary-fixed-dim": "#ffb59d", "surface-container-highest": "#ebe1da",
+          "on-tertiary-fixed-variant": "#524532", "surface": "#fff8f5", "secondary-container": "#dae7cd",
+          "on-surface": "#1f1b17", "background": "#fff8f5", "tertiary-fixed-dim": "#d7c4ac",
+          "on-tertiary-fixed": "#241a0b", "inverse-on-surface": "#f9efe8", "secondary": "#56624e",
+          "surface-dim": "#e2d8d2", "error-container": "#ffdad6", "surface-tint": "#904b35",
+        },
+        borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+        spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
+        fontFamily: {
+          "body-lg": ["DM Sans"], "display-lg": ["EB Garamond"], "headline-md": ["EB Garamond"],
+          "display-lg-mobile": ["EB Garamond"], "body-md": ["DM Sans"], "headline-lg": ["EB Garamond"], "label-sm": ["DM Sans"],
+        },
+        fontSize: {
+          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "display-lg": ["72px", { lineHeight: "80px", letterSpacing: "-0.02em", fontWeight: "400" }],
+          "headline-md": ["32px", { lineHeight: "40px", fontWeight: "400" }],
+          "display-lg-mobile": ["42px", { lineHeight: "46px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-lg": ["48px", { lineHeight: "56px", fontWeight: "400" }],
+          "label-sm": ["13px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+        },
+      },
+    },
+  };
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col relative overflow-x-hidden">
+
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm transition-all duration-300" id="top-nav">
+<div class="flex justify-between items-center px-5 md:px-margin-desktop py-4 max-w-container-max mx-auto">
+<a class="font-headline-md text-headline-md text-primary tracking-tight" href="index.html">Mud Magic</a>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary border-b-2 border-primary pb-1 font-label-sm text-label-sm px-2 py-1 rounded transition-all duration-300" href="#showcase">Showcase</a>
+<a class="link-underline text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm px-2 py-1 rounded transition-all duration-300" href="#process">Process</a>
+<a class="link-underline text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm px-2 py-1 rounded transition-all duration-300" href="studio.html">Studio</a>
+<a class="link-underline text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm px-2 py-1 rounded transition-all duration-300" href="#gallery">Gallery</a>
+</div>
+<div class="flex items-center gap-3">
+<a href="studio.html" data-magnet data-magnet-strength="8" class="hidden sm:inline-flex bg-primary text-on-primary px-6 py-2 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-colors shadow-sm hover:shadow-md active:scale-95 duration-200">Get Started</a>
+<button id="mobile-menu-toggle" class="md:hidden text-on-surface p-1.5" aria-label="Toggle menu" aria-expanded="false">
+<span class="material-symbols-outlined icon-open">menu</span>
+<span class="material-symbols-outlined icon-close hidden">close</span>
+</button>
+</div>
+</div>
+<div id="mobile-menu" class="md:hidden px-5 border-t border-outline-variant/20">
+<div class="flex flex-col py-4 gap-1">
+<a class="py-2.5 font-body-md text-on-surface-variant hover:text-primary" href="#showcase">Showcase</a>
+<a class="py-2.5 font-body-md text-on-surface-variant hover:text-primary" href="#process">Process</a>
+<a class="py-2.5 font-body-md text-on-surface-variant hover:text-primary" href="studio.html">Studio</a>
+<a class="py-2.5 font-body-md text-on-surface-variant hover:text-primary" href="#gallery">Gallery</a>
+<a class="mt-2 text-center bg-primary text-on-primary px-6 py-3 rounded-full font-label-sm text-label-sm" href="studio.html">Get Started</a>
+</div>
+</div>
+</nav>
+
+<main class="flex-grow pt-[84px] md:pt-[100px]">
+
+<!-- Hero Section -->
+<section class="max-w-container-max mx-auto px-5 md:px-margin-desktop pt-10 pb-20 md:py-section-gap min-h-[auto] md:min-h-[80vh] flex flex-col lg:flex-row items-center gap-10 lg:gap-gutter relative">
+<div class="w-full lg:w-1/2 flex flex-col gap-6 md:gap-8 z-10 reveal">
+<h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background leading-tight">
+From an idea to a mug that's only yours
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-lg">
+Turn your imagination into real ceramic art with a live 3D design studio and honest studio craftsmanship. The tactile warmth of clay meets the precision of modern tooling.
+</p>
+<div class="flex flex-col sm:flex-row gap-4 mt-2 md:mt-4">
+<a href="studio.html" data-magnet data-magnet-strength="10" class="bg-primary text-on-primary px-8 py-4 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-2 group">
+Start Designing Free
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+<a href="#gallery" class="border border-outline text-on-surface px-8 py-4 rounded-full font-label-sm text-label-sm hover:bg-surface-container-low hover:text-primary hover:border-primary transition-all duration-300 flex items-center justify-center">
+Explore Community
+</a>
+</div>
+<div class="flex items-center gap-6 pt-4 text-on-surface-variant/80">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size:20px;">check_circle</span>
+<span class="font-label-sm text-label-sm">Live 3D editor, right in your browser</span>
+</div>
+</div>
+</div>
+
+<!-- Right: Live 3D preview + floating photography -->
+<div class="w-full lg:w-1/2 relative h-[420px] sm:h-[500px] lg:h-[700px] flex items-center justify-center mt-4 lg:mt-0 reveal reveal-scale" data-reveal-delay="150">
+<div class="absolute inset-0 bg-surface-container-highest rounded-[32px] md:rounded-[40px] opacity-30 transform rotate-3 scale-105 pointer-events-none"></div>
+<div class="absolute inset-0 bg-surface-container rounded-[32px] md:rounded-[40px] transform -rotate-2 pointer-events-none"></div>
+<div class="relative w-full h-full flex items-center justify-center">
+
+<!-- Live rotating 3D mug -->
+<div class="relative w-[86%] h-[86%] rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(46,41,37,0.08)] bg-surface-container-lowest group">
+<div id="hero-3d" class="w-full h-full mm-shimmer"></div>
+<div class="absolute bottom-6 left-6 bg-surface/90 backdrop-blur-sm px-4 py-2 rounded-full border border-outline-variant/50">
+<span class="font-label-sm text-label-sm text-on-surface uppercase tracking-wider">Live — drag to explore in Studio</span>
+</div>
+</div>
+
+<!-- Floating card: process step, real photo -->
+<div class="mm-float absolute top-[6%] -left-[6%] sm:-left-[10%] w-[42%] h-[32%] rounded-lg overflow-hidden shadow-[0_10px_30px_rgba(46,41,37,0.08)] border border-outline-variant/20 bg-surface" style="--mm-rot:-6deg;">
+<img class="w-full h-full object-cover" loading="lazy" alt="Potter's hands shaping wet clay on a spinning wheel" src="https://images.unsplash.com/photo-1753164725860-ffcd260b7b32?auto=format&fit=crop&w=600&q=80" />
+<div class="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full border border-outline-variant/30">
+<span class="font-label-sm text-[10px] text-on-surface uppercase tracking-wider">Hand-thrown</span>
+</div>
+</div>
+
+<!-- Floating card: kiln-fired result -->
+<div class="mm-float-slow absolute bottom-[8%] -right-[4%] sm:-right-[6%] w-[38%] h-[38%] rounded-lg overflow-hidden shadow-[0_15px_35px_rgba(46,41,37,0.08)] border border-outline-variant/20 bg-surface" style="--mm-rot:5deg;">
+<img class="w-full h-full object-cover" loading="lazy" alt="Two finished handmade ceramic mugs on a kitchen shelf" src="https://images.unsplash.com/photo-1536936812504-0e77dc3f0b40?auto=format&fit=crop&w=600&q=80" />
+<div class="absolute top-2 left-2 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full border border-outline-variant/30">
+<span class="font-label-sm text-[10px] text-on-surface uppercase tracking-wider">Kiln-fired</span>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- Process Section -->
+<section id="process" class="max-w-container-max mx-auto px-5 md:px-margin-desktop py-16 md:py-[120px]">
+<div class="max-w-2xl mb-14 md:mb-20 reveal">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">How it works</span>
+<h2 class="font-headline-lg text-headline-lg text-on-background mt-3">Four steps from screen to shelf.</h2>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+
+<div class="reveal hover-lift" data-tilt data-tilt-strength="6" data-reveal-delay="0">
+<div class="rounded-xl overflow-hidden aspect-[4/5] mb-5 bg-surface-container">
+<img class="w-full h-full object-cover" loading="lazy" alt="Close-up of a potter shaping clay on a wheel" src="https://images.unsplash.com/photo-1676125105332-608345abe20e?auto=format&fit=crop&w=700&q=80" />
+</div>
+<div class="font-label-sm text-label-sm text-secondary mb-1 uppercase tracking-wider">01</div>
+<h3 class="font-headline-md text-[22px] leading-7 text-on-background mb-2">Shape it in 3D</h3>
+<p class="text-on-surface-variant text-sm leading-6">Pick a silhouette and handle in the live studio — the model updates as you click, not after a render queue.</p>
+</div>
+
+<div class="reveal hover-lift" data-tilt data-tilt-strength="6" data-reveal-delay="100">
+<div class="rounded-xl overflow-hidden aspect-[4/5] mb-5 bg-surface-container">
+<img class="w-full h-full object-cover" loading="lazy" alt="Detail of pottery tools used to trim a ceramic piece" src="https://images.unsplash.com/photo-1739467516257-20c1d7f1949a?auto=format&fit=crop&w=700&q=80" />
+</div>
+<div class="font-label-sm text-label-sm text-secondary mb-1 uppercase tracking-wider">02</div>
+<h3 class="font-headline-md text-[22px] leading-7 text-on-background mb-2">Describe a glaze</h3>
+<p class="text-on-surface-variant text-sm leading-6">Type what you're picturing — the studio reads it for shape, texture and colour cues and proposes four directions.</p>
+</div>
+
+<div class="reveal hover-lift" data-tilt data-tilt-strength="6" data-reveal-delay="200">
+<div class="rounded-xl overflow-hidden aspect-[4/5] mb-5 bg-surface-container">
+<img class="w-full h-full object-cover" loading="lazy" alt="Hands covered in wet clay shaping a pottery piece" src="https://images.unsplash.com/photo-1771523350747-638a89667c8f?auto=format&fit=crop&w=700&q=80" />
+</div>
+<div class="font-label-sm text-label-sm text-secondary mb-1 uppercase tracking-wider">03</div>
+<h3 class="font-headline-md text-[22px] leading-7 text-on-background mb-2">We hand-throw it</h3>
+<p class="text-on-surface-variant text-sm leading-6">Your finished design goes to a small studio partner, thrown and trimmed by hand from your exact spec.</p>
+</div>
+
+<div class="reveal hover-lift" data-tilt data-tilt-strength="6" data-reveal-delay="300">
+<div class="rounded-xl overflow-hidden aspect-[4/5] mb-5 bg-surface-container">
+<img class="w-full h-full object-cover" loading="lazy" alt="Two glazed ceramic mugs finished and ready on a shelf" src="https://images.unsplash.com/photo-1610206349499-c932c3b3aacb?auto=format&fit=crop&w=700&q=80" />
+</div>
+<div class="font-label-sm text-label-sm text-secondary mb-1 uppercase tracking-wider">04</div>
+<h3 class="font-headline-md text-[22px] leading-7 text-on-background mb-2">Fired &amp; delivered</h3>
+<p class="text-on-surface-variant text-sm leading-6">Glazed, kiln-fired and boxed by hand. Every piece ships a little different — that's the point.</p>
+</div>
+
+</div>
+</section>
+
+<!-- Studio teaser -->
+<section class="bg-surface-container-low py-16 md:py-[120px]">
+<div class="max-w-container-max mx-auto px-5 md:px-margin-desktop">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16 reveal">
+<div class="max-w-xl">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">The studio</span>
+<h2 class="font-headline-lg text-headline-lg text-on-background mt-3">Everything is editable, nothing is a mockup.</h2>
+</div>
+<a href="studio.html" class="link-underline font-label-sm text-label-sm text-primary flex items-center gap-1 whitespace-nowrap">
+Open the studio <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+</a>
+</div>
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+<a href="studio.html" data-tilt data-tilt-strength="5" class="reveal hover-lift bg-surface rounded-xl p-6 border border-outline-variant/40" data-reveal-delay="0">
+<span class="material-symbols-outlined text-primary" style="font-size:28px;">category</span>
+<h3 class="font-headline-md text-[20px] mt-4 mb-1 text-on-background">Shape</h3>
+<p class="text-on-surface-variant text-sm">Classic, round, tall or wide bodies — swap instantly.</p>
+</a>
+<a href="studio.html" data-tilt data-tilt-strength="5" class="reveal hover-lift bg-surface rounded-xl p-6 border border-outline-variant/40" data-reveal-delay="80">
+<span class="material-symbols-outlined text-primary" style="font-size:28px;">gesture</span>
+<h3 class="font-headline-md text-[20px] mt-4 mb-1 text-on-background">Handle</h3>
+<p class="text-on-surface-variant text-sm">Minimal, looped or organic — each redraws the curve live.</p>
+</a>
+<a href="studio.html" data-tilt data-tilt-strength="5" class="reveal hover-lift bg-surface rounded-xl p-6 border border-outline-variant/40" data-reveal-delay="160">
+<span class="material-symbols-outlined text-primary" style="font-size:28px;">texture</span>
+<h3 class="font-headline-md text-[20px] mt-4 mb-1 text-on-background">Surface</h3>
+<p class="text-on-surface-variant text-sm">Smooth, matte or rough — real material response, not a filter.</p>
+</a>
+<a href="studio.html" data-tilt data-tilt-strength="5" class="reveal hover-lift bg-surface rounded-xl p-6 border border-outline-variant/40" data-reveal-delay="240">
+<span class="material-symbols-outlined text-primary" style="font-size:28px;">palette</span>
+<h3 class="font-headline-md text-[20px] mt-4 mb-1 text-on-background">Glaze</h3>
+<p class="text-on-surface-variant text-sm">Eight studio glazes, or let the AI panel suggest one.</p>
+</a>
+</div>
+</div>
+</section>
+
+<!-- Gallery / Showcase -->
+<section id="showcase" class="max-w-container-max mx-auto px-5 md:px-margin-desktop py-16 md:py-[120px]">
+<div id="gallery" class="max-w-2xl mb-12 md:mb-16 reveal">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">From the community</span>
+<h2 class="font-headline-lg text-headline-lg text-on-background mt-3">Every mug leaves the kiln a little different.</h2>
+<p class="text-on-surface-variant mt-4 text-body-lg">A small selection of studio work — handmade pieces, honest textures, and the wheel marks left in.</p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+<figure class="reveal hover-lift col-span-2 md:col-span-2 row-span-2 rounded-xl overflow-hidden relative group" data-reveal-delay="0">
+<img class="w-full h-full object-cover aspect-[4/3] md:aspect-auto transition-transform duration-700 group-hover:scale-105" loading="lazy" alt="A table topped with many different types of finished pottery" src="https://images.unsplash.com/photo-1740329362227-45c2f46a1f66?auto=format&fit=crop&w=1200&q=80" />
+<figcaption class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-on-background/60 to-transparent text-surface-container-lowest">
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Studio table, mixed batch</span>
+</figcaption>
+</figure>
+
+<figure class="reveal hover-lift rounded-xl overflow-hidden relative group" data-reveal-delay="80">
+<img class="w-full h-full object-cover aspect-square transition-transform duration-700 group-hover:scale-105" loading="lazy" alt="Two white ceramic mugs resting on a kitchen shelf" src="https://images.unsplash.com/photo-1536936812504-0e77dc3f0b40?auto=format&fit=crop&w=800&q=80" />
+</figure>
+
+<figure class="reveal hover-lift rounded-xl overflow-hidden relative group" data-reveal-delay="140">
+<img class="w-full h-full object-cover aspect-square transition-transform duration-700 group-hover:scale-105" loading="lazy" alt="Pottery tool resting beside unfinished ceramic pieces" src="https://images.unsplash.com/photo-1595351298020-038700609878?auto=format&fit=crop&w=800&q=80" />
+</figure>
+
+<figure class="reveal hover-lift rounded-xl overflow-hidden relative group" data-reveal-delay="200">
+<img class="w-full h-full object-cover aspect-square transition-transform duration-700 group-hover:scale-105" loading="lazy" alt="Minimalist white ceramic vases photographed studio-style" src="https://images.unsplash.com/photo-1572853566597-b83cde546912?auto=format&fit=crop&w=800&q=80" />
+</figure>
+
+<figure class="reveal hover-lift rounded-xl overflow-hidden relative group" data-reveal-delay="260">
+<img class="w-full h-full object-cover aspect-square transition-transform duration-700 group-hover:scale-105" loading="lazy" alt="Wooden shelf lined with handmade pottery pieces" src="https://images.unsplash.com/photo-1624865983220-bbe6d95dac15?auto=format&fit=crop&w=800&q=80" />
+</figure>
+
+<figure class="reveal hover-lift rounded-xl overflow-hidden relative group" data-reveal-delay="320">
+<img class="w-full h-full object-cover aspect-square transition-transform duration-700 group-hover:scale-105" loading="lazy" alt="A potter's wheel surrounded by finished ceramic pieces" src="https://images.unsplash.com/photo-1676125105332-608345abe20e?auto=format&fit=crop&w=800&q=80" />
+</figure>
+</div>
+</section>
+
+<!-- Stats band -->
+<section class="border-y border-outline-variant/40 bg-surface-container">
+<div class="max-w-container-max mx-auto px-5 md:px-margin-desktop py-14 md:py-20 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6 text-center">
+<div class="reveal" data-reveal-delay="0">
+<div class="font-headline-lg text-headline-lg text-primary">100%</div>
+<p class="text-on-surface-variant text-sm mt-2 uppercase tracking-wider font-label-sm text-label-sm">Hand-glazed, no printing</p>
+</div>
+<div class="reveal" data-reveal-delay="100">
+<div class="font-headline-lg text-headline-lg text-primary">5–7 days</div>
+<p class="text-on-surface-variant text-sm mt-2 uppercase tracking-wider font-label-sm text-label-sm">Studio to doorstep</p>
+</div>
+<div class="reveal" data-reveal-delay="200">
+<div class="font-headline-lg text-headline-lg text-primary">Small batch</div>
+<p class="text-on-surface-variant text-sm mt-2 uppercase tracking-wider font-label-sm text-label-sm">Made a handful at a time</p>
+</div>
+</div>
+</section>
+
+<!-- CTA -->
+<section class="max-w-container-max mx-auto px-5 md:px-margin-desktop py-20 md:py-[140px] text-center reveal">
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background max-w-3xl mx-auto leading-tight">
+Your mug is one click from the wheel.
+</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-lg mx-auto mt-6">
+No design experience required — the studio walks with you from first shape to final glaze.
+</p>
+<a href="studio.html" data-magnet data-magnet-strength="10" class="mt-8 inline-flex bg-primary text-on-primary px-8 py-4 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all duration-300 shadow-sm hover:shadow-md items-center gap-2 group">
+Open the Studio
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="w-full py-14 md:py-20 px-5 md:px-margin-desktop bg-surface-container border-t border-outline-variant">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-8 md:gap-gutter">
+<div class="font-headline-md text-headline-md text-primary font-bold">Mud Magic</div>
+<div class="font-body-md text-body-md text-secondary text-center">
+© 2026 Mud Magic AI. Handcrafted by algorithms and a few very patient potters.
+</div>
+<div class="flex gap-6 font-label-sm text-label-sm text-on-surface-variant">
+<a class="link-underline hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="link-underline hover:text-primary transition-colors" href="#">Terms</a>
+<a class="link-underline hover:text-primary transition-colors" href="login.html">Studio Access</a>
+<a class="link-underline hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+</div>
+</footer>
+
+<script src="js/api-client.js"></script>
+<script src="js/main.js"></script>
+<script type="module" src="js/hero3d.js"></script>
+</body>
+</html>

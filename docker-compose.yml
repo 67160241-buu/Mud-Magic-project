@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mudmagic_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-project_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-project_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-project_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-project_user} -d ${POSTGRES_DB:-project_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    container_name: mudmagic_api
+    restart: unless-stopped
+    env_file:
+      - ./api/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-project_user}:${POSTGRES_PASSWORD:-project_pass}@db:5432/${POSTGRES_DB:-project_db}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./api/app:/app/app
+    # entrypoint.sh runs `alembic upgrade head` first, then execs uvicorn;
+    # this just adds --reload on top of that for local dev.
+    command: ["--reload"]
+
+  web:
+    image: nginx:alpine
+    container_name: mudmagic_web
+    restart: unless-stopped
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

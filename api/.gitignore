@@ -1,0 +1,33 @@
+# Environment / secrets — never commit real values
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# Test / cache
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Alembic (keep migration scripts, ignore local db files if any)
+*.sqlite3
+*.db
+
+# Docker
+docker-compose.override.yml
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

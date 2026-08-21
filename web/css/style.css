@@ -1,0 +1,158 @@
+/* style.css — shared visual polish that Tailwind's CDN build can't express
+   as utility classes (keyframes, pseudo-elements, custom scrollbars). */
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+.fill-icon {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ---------------- Scroll reveal ---------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-scale.reveal-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---------------- Hover lift for gallery / feature cards ---------------- */
+.hover-lift {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px -12px rgba(46, 41, 37, 0.16);
+}
+
+[data-tilt] {
+  transition: transform 0.25s ease-out;
+  transform-style: preserve-3d;
+}
+
+[data-magnet] {
+  transition: transform 0.2s ease-out;
+  display: inline-flex;
+}
+
+/* ---------------- Breathing "AI processing" indicator ---------------- */
+@keyframes mm-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+.mm-breathe {
+  animation: mm-breathe 2.2s ease-in-out infinite;
+}
+
+/* ---------------- Ambient hero float ---------------- */
+@keyframes mm-float {
+  0%, 100% { transform: translateY(0px) rotate(var(--mm-rot, -6deg)); }
+  50% { transform: translateY(-10px) rotate(var(--mm-rot, -6deg)); }
+}
+.mm-float {
+  animation: mm-float 6s ease-in-out infinite;
+}
+.mm-float-slow {
+  animation: mm-float 8s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+/* ---------------- Custom scrollbars ---------------- */
+.tools-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.tools-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tools-scroll::-webkit-scrollbar-thumb {
+  background-color: #d9c1bb;
+  border-radius: 20px;
+}
+
+.studio-shadow {
+  box-shadow: 0 10px 40px -10px rgba(46, 41, 37, 0.08);
+}
+
+/* ---------------- Mobile menu ---------------- */
+#mobile-menu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#mobile-menu.mobile-menu-open {
+  max-height: 420px;
+}
+
+/* ---------------- Underline link ---------------- */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ---------------- Studio: variation thumbnail selected badge ---------------- */
+.mm-variation.is-selected {
+  border-color: #88452f;
+  box-shadow: 0 8px 20px -6px rgba(46, 41, 37, 0.18);
+}
+
+/* ---------------- Studio: presentation / preview mode ---------------- */
+body.mm-preview-mode .mm-hide-in-preview {
+  display: none !important;
+}
+body.mm-preview-mode #mm-exit-preview {
+  display: inline-flex !important;
+}
+
+/* Loading skeleton shimmer for the live 3D canvases */
+@keyframes mm-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.mm-shimmer {
+  background: linear-gradient(90deg, #f0e6e0 0%, #fbf4ee 50%, #f0e6e0 100%);
+  background-size: 800px 100%;
+  animation: mm-shimmer 1.4s linear infinite;
+}

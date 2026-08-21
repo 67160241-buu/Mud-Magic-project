@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport" />
+<title>Studio — Mud Magic</title>
+<meta name="description" content="Shape, glaze and edit your own ceramic mug in a live 3D studio, then generate AI variations." />
+<link rel="icon" href="data:," />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-secondary-container": "#5c6853", "on-background": "#1f1b17", "on-error-container": "#93000a",
+          "inverse-surface": "#352f2b", "on-tertiary": "#ffffff", "surface-container": "#f6ece5",
+          "on-tertiary-container": "#fff4ea", "on-secondary": "#ffffff", "surface-container-low": "#fcf2eb",
+          "on-primary-fixed-variant": "#733520", "secondary-fixed-dim": "#becbb2", "on-primary-fixed": "#390b00",
+          "error": "#ba1a1a", "on-secondary-fixed": "#141e0f", "inverse-primary": "#ffb59d",
+          "surface-bright": "#fff8f5", "on-primary": "#ffffff", "primary-fixed": "#ffdbd0", "primary": "#88452f",
+          "surface-container-lowest": "#ffffff", "surface-container-high": "#f0e6e0", "on-surface-variant": "#54433e",
+          "secondary-fixed": "#dae7cd", "tertiary": "#645643", "on-error": "#ffffff", "on-primary-container": "#fff4f1",
+          "tertiary-fixed": "#f4e0c7", "on-secondary-fixed-variant": "#3f4a37", "primary-container": "#a65d45",
+          "surface-variant": "#ebe1da", "outline-variant": "#d9c1bb", "outline": "#86736d",
+          "tertiary-container": "#7d6e5a", "primary-fixed-dim": "#ffb59d", "surface-container-highest": "#ebe1da",
+          "on-tertiary-fixed-variant": "#524532", "surface": "#fff8f5", "secondary-container": "#dae7cd",
+          "on-surface": "#1f1b17", "background": "#fff8f5", "tertiary-fixed-dim": "#d7c4ac",
+          "on-tertiary-fixed": "#241a0b", "inverse-on-surface": "#f9efe8", "secondary": "#56624e",
+          "surface-dim": "#e2d8d2", "error-container": "#ffdad6", "surface-tint": "#904b35",
+        },
+        borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+        spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
+        fontFamily: {
+          "body-lg": ["DM Sans"], "display-lg": ["EB Garamond"], "headline-md": ["EB Garamond"],
+          "display-lg-mobile": ["EB Garamond"], "body-md": ["DM Sans"], "headline-lg": ["EB Garamond"], "label-sm": ["DM Sans"],
+        },
+        fontSize: {
+          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "display-lg": ["80px", { lineHeight: "88px", letterSpacing: "-0.02em", fontWeight: "400" }],
+          "headline-md": ["32px", { lineHeight: "40px", fontWeight: "400" }],
+          "display-lg-mobile": ["48px", { lineHeight: "52px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-lg": ["48px", { lineHeight: "56px", fontWeight: "400" }],
+          "label-sm": ["13px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+        },
+      },
+    },
+  };
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-hidden h-screen flex flex-col">
+
+<!-- TopNavBar -->
+<nav class="bg-background/80 backdrop-blur-md fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 md:px-margin-desktop py-4" style="max-width: 100vw;" id="top-nav">
+<a href="index.html" class="font-headline-md text-headline-md text-primary tracking-tight">Mud Magic</a>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Showcase</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">Process</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">Studio</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Gallery</a>
+</div>
+<div class="flex items-center gap-1 sm:gap-4">
+<button id="mm-save-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden sm:flex">
+<span class="material-symbols-outlined" style="font-size: 20px;">save</span> Save
+</button>
+<button id="mm-preview-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden sm:flex">
+<span class="material-symbols-outlined" style="font-size: 20px;">visibility</span> Preview
+</button>
+<button id="mm-share-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 mr-1 sm:mr-4 hidden sm:flex">
+<span class="material-symbols-outlined" style="font-size: 20px;">share</span> Share
+</button>
+<button id="mobile-tools-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="Toggle tools panel">
+<span class="material-symbols-outlined">tune</span>
+</button>
+<button id="mobile-ai-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="Toggle AI panel">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+<a href="login.html" id="mm-account-link" class="bg-primary text-on-primary font-label-sm text-label-sm px-4 sm:px-6 py-2 rounded-full hover:bg-surface-tint transition-all duration-300">Get Started</a>
+</div>
+</nav>
+
+<!-- Main Workspace -->
+<main class="flex-1 flex mt-[64px] md:mt-[72px] overflow-hidden relative">
+
+<!-- Left Toolbar -->
+<aside id="tools-panel" class="w-72 bg-surface border-r border-outline-variant/30 flex flex-col z-30 studio-shadow tools-scroll overflow-y-auto fixed inset-y-0 top-[64px] md:top-0 left-0 -translate-x-full md:translate-x-0 md:static transition-transform duration-300">
+<div class="p-6 border-b border-outline-variant/20">
+<h2 class="font-headline-md text-[24px] leading-8 text-on-surface">Tools</h2>
+<p class="font-body-md text-on-surface-variant/70 text-sm mt-1">Shape your vessel</p>
+</div>
+<div class="p-6 space-y-8">
+
+<!-- Shape -->
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">category</span> SHAPE
+</label>
+<div class="grid grid-cols-2 gap-2">
+<button data-shape="classic" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Classic</button>
+<button data-shape="round" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Round</button>
+<button data-shape="tall" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Tall</button>
+<button data-shape="wide" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Wide</button>
+</div>
+</div>
+
+<!-- Handle -->
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">gesture</span> HANDLE
+</label>
+<div class="grid grid-cols-2 gap-2">
+<button data-handle="minimal" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Minimal</button>
+<button data-handle="loop" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Loop</button>
+<button data-handle="organic" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors col-span-2">Organic</button>
+</div>
+</div>
+
+<!-- Surface -->
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">texture</span> SURFACE
+</label>
+<div class="flex flex-col gap-2">
+<button data-surface="smooth" class="flex items-center justify-between px-4 py-2 border rounded-lg transition-colors font-body-md text-sm">
+Smooth <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
+</button>
+<button data-surface="matte" class="flex items-center justify-between px-4 py-2 border rounded-lg transition-colors font-body-md text-sm">
+Matte <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
+</button>
+<button data-surface="rough" class="flex items-center justify-between px-4 py-2 border rounded-lg transition-colors font-body-md text-sm">
+Rough <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
+</button>
+</div>
+</div>
+
+<!-- Glaze -->
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">palette</span> GLAZE
+</label>
+<div class="grid grid-cols-4 gap-3">
+<button data-color="#A65D45" title="Terracotta" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#A65D45"></button>
+<button data-color="#7C8872" title="Sage" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#7C8872"></button>
+<button data-color="#F3E9DD" title="Cream" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#F3E9DD"></button>
+<button data-color="#3B2A20" title="Espresso" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#3B2A20"></button>
+<button data-color="#E3A896" title="Blush" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#E3A896"></button>
+<button data-color="#2B2B2B" title="Charcoal" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#2B2B2B"></button>
+<button data-color="#4C5A66" title="Denim" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#4C5A66"></button>
+<button data-color="#FBF6EF" title="Ivory" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#FBF6EF"></button>
+</div>
+</div>
+
+<!-- Sculpt -->
+<div class="space-y-3 pt-2 border-t border-outline-variant/20">
+<label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">brush</span> SCULPT
+</label>
+<button id="mm-sculpt-toggle" class="w-full flex items-center justify-center gap-2 border border-outline-variant bg-white text-on-surface-variant font-body-md text-sm py-2.5 rounded-lg transition-colors hover:border-primary">
+<span class="material-symbols-outlined" style="font-size: 18px;">fingerprint</span> Freeform Sculpt Mode
+</button>
+
+<p id="mm-sculpt-hint" class="hidden text-xs text-on-surface-variant/70 leading-relaxed">
+Drag on the mug to push/pull the surface. Camera drag is off while sculpting — use the Rotate/Zoom/Reset buttons below the viewport instead.
+</p>
+
+<div id="mm-sculpt-controls" class="hidden space-y-4 bg-surface-container-low rounded-lg p-3">
+<div class="flex gap-2">
+<button data-sculpt-mode="push" class="flex-1 flex items-center justify-center gap-1 border font-body-md text-xs py-2 rounded-lg transition-colors bg-primary text-on-primary">
+<span class="material-symbols-outlined" style="font-size: 16px;">add</span> Push
+</button>
+<button data-sculpt-mode="pull" class="flex-1 flex items-center justify-center gap-1 border font-body-md text-xs py-2 rounded-lg transition-colors bg-white text-on-surface-variant border-outline-variant">
+<span class="material-symbols-outlined" style="font-size: 16px;">remove</span> Pull
+</button>
+</div>
+
+<div>
+<div class="flex items-center justify-between mb-1">
+<label for="mm-brush-size" class="text-xs text-on-surface-variant">Brush Size</label>
+</div>
+<input id="mm-brush-size" type="range" min="0.06" max="0.4" step="0.01" value="0.18" class="w-full accent-primary" />
+</div>
+
+<div>
+<div class="flex items-center justify-between mb-1">
+<label for="mm-brush-strength" class="text-xs text-on-surface-variant">Strength</label>
+</div>
+<input id="mm-brush-strength" type="range" min="0.05" max="1" step="0.05" value="0.35" class="w-full accent-primary" />
+</div>
+
+<button id="mm-sculpt-reset" class="w-full flex items-center justify-center gap-2 border border-outline-variant bg-white text-on-surface-variant font-body-md text-xs py-2 rounded-lg hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span> Reset Sculpt
+</button>
+</div>
+</div>
+
+<p id="mm-config-summary" class="font-label-sm text-label-sm text-outline uppercase tracking-wide pt-2 border-t border-outline-variant/20"></p>
+</div>
+</aside>
+
+<!-- Mobile scrim -->
+<div id="mobile-scrim" class="fixed inset-0 bg-on-background/30 backdrop-blur-[1px] z-20 hidden md:hidden"></div>
+
+<!-- Center Viewport -->
+<section class="flex-1 relative bg-[#F9F7F5] flex items-center justify-center overflow-hidden">
+<div id="mug-viewport" class="absolute inset-0"></div>
+
+<!-- Viewport Controls -->
+<div class="mm-hide-in-preview absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md border border-outline-variant/30 rounded-full px-4 md:px-6 py-2.5 md:py-3 flex items-center gap-4 md:gap-6 shadow-sm z-10">
+<button id="mm-rotate-btn" class="text-on-surface-variant hover:text-primary transition-colors flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined group-hover:-rotate-45 transition-transform duration-300">360</span>
+<span class="font-label-sm text-[10px] uppercase tracking-wider">Rotate</span>
+</button>
+<div class="w-px h-6 bg-outline-variant/30"></div>
+<button id="mm-zoom-btn" class="text-on-surface-variant hover:text-primary transition-colors flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300">zoom_in</span>
+<span class="font-label-sm text-[10px] uppercase tracking-wider">Zoom</span>
+</button>
+<div class="w-px h-6 bg-outline-variant/30"></div>
+<button id="mm-reset-btn" class="text-on-surface-variant hover:text-primary transition-colors flex flex-col items-center gap-1">
+<span class="material-symbols-outlined">restart_alt</span>
+<span class="font-label-sm text-[10px] uppercase tracking-wider">Reset</span>
+</button>
+</div>
+
+<button id="mm-exit-preview" class="hidden absolute top-4 right-4 z-20 bg-white/90 backdrop-blur border border-outline-variant/40 rounded-full px-4 py-2 items-center gap-2 text-sm text-on-surface shadow-sm">
+<span class="material-symbols-outlined" style="font-size:18px;">close</span> Exit preview
+</button>
+</section>
+
+<!-- Right AI Panel -->
+<aside id="ai-panel" class="w-full max-w-[400px] bg-surface border-l border-outline-variant/30 flex flex-col z-30 studio-shadow fixed inset-y-0 top-[64px] md:top-0 right-0 translate-x-full md:translate-x-0 md:static transition-transform duration-300 mm-hide-in-preview">
+<div class="p-6 border-b border-outline-variant/20 flex items-center justify-between">
+<div>
+<h2 class="font-headline-md text-[24px] leading-8 text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+AI Studio
+</h2>
+<p class="font-body-md text-on-surface-variant/70 text-sm mt-1">Generate variations from a prompt</p>
+</div>
+<button id="mobile-ai-close" class="md:hidden text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
+</div>
+<div class="p-6 flex flex-col h-full overflow-y-auto tools-scroll">
+<div class="space-y-4 mb-8">
+<label class="font-label-sm text-label-sm text-tertiary">Describe your idea</label>
+<textarea id="mm-prompt" class="w-full bg-white border border-outline-variant rounded-xl p-4 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm" placeholder="e.g., Tall sage mug with an organic handle and a rough, unglazed texture..." rows="3"></textarea>
+<button id="mm-generate-btn" data-magnet data-magnet-strength="6" class="w-full bg-primary text-on-primary font-body-md py-3 rounded-lg hover:bg-surface-tint transition-colors flex items-center justify-center gap-2 shadow-sm disabled:cursor-wait">
+Generate Design
+<span class="material-symbols-outlined" style="font-size: 20px;">arrow_forward</span>
+</button>
+<p class="font-label-sm text-label-sm text-outline">Client-side generator — reads your prompt for shape, handle, surface &amp; glaze cues, no server round-trip.</p>
+</div>
+<div class="mt-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider">Variations</h3>
+<span class="font-body-md text-xs text-on-surface-variant bg-surface-variant px-2 py-1 rounded">4 Results</span>
+</div>
+<div id="mm-variation-grid" class="grid grid-cols-2 gap-4"></div>
+</div>
+</div>
+</aside>
+
+</main>
+
+<script>
+  // Mobile drawer toggles for the tools / AI panels (studio-page-only behaviour).
+  (function () {
+    const toolsPanel = document.getElementById("tools-panel");
+    const aiPanel = document.getElementById("ai-panel");
+    const scrim = document.getElementById("mobile-scrim");
+    const toolsToggle = document.getElementById("mobile-tools-toggle");
+    const aiToggle = document.getElementById("mobile-ai-toggle");
+    const aiClose = document.getElementById("mobile-ai-close");
+
+    function closeAll() {
+      toolsPanel.classList.add("-translate-x-full");
+      aiPanel.classList.add("translate-x-full");
+      scrim.classList.add("hidden");
+    }
+    function openTools() {
+      toolsPanel.classList.remove("-translate-x-full");
+      aiPanel.classList.add("translate-x-full");
+      scrim.classList.remove("hidden");
+    }
+    function openAi() {
+      aiPanel.classList.remove("translate-x-full");
+      toolsPanel.classList.add("-translate-x-full");
+      scrim.classList.remove("hidden");
+    }
+    toolsToggle.addEventListener("click", () => {
+      toolsPanel.classList.contains("-translate-x-full") ? openTools() : closeAll();
+    });
+    aiToggle.addEventListener("click", () => {
+      aiPanel.classList.contains("translate-x-full") ? openAi() : closeAll();
+    });
+    aiClose.addEventListener("click", closeAll);
+    scrim.addEventListener("click", closeAll);
+  })();
+</script>
+<script src="js/api-client.js"></script>
+<script src="js/main.js"></script>
+<script type="module" src="js/studio.js"></script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Sign in — Mud Magic</title>
+<link rel="icon" href="data:," />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-secondary-container": "#5c6853", "on-background": "#1f1b17", "on-error-container": "#93000a",
+          "inverse-surface": "#352f2b", "on-tertiary": "#ffffff", "surface-container": "#f6ece5",
+          "on-tertiary-container": "#fff4ea", "on-secondary": "#ffffff", "surface-container-low": "#fcf2eb",
+          "on-primary-fixed-variant": "#733520", "secondary-fixed-dim": "#becbb2", "on-primary-fixed": "#390b00",
+          "error": "#ba1a1a", "on-secondary-fixed": "#141e0f", "inverse-primary": "#ffb59d",
+          "surface-bright": "#fff8f5", "on-primary": "#ffffff", "primary-fixed": "#ffdbd0", "primary": "#88452f",
+          "surface-container-lowest": "#ffffff", "surface-container-high": "#f0e6e0", "on-surface-variant": "#54433e",
+          "secondary-fixed": "#dae7cd", "tertiary": "#645643", "on-error": "#ffffff", "on-primary-container": "#fff4f1",
+          "tertiary-fixed": "#f4e0c7", "on-secondary-fixed-variant": "#3f4a37", "primary-container": "#a65d45",
+          "surface-variant": "#ebe1da", "outline-variant": "#d9c1bb", "outline": "#86736d",
+          "tertiary-container": "#7d6e5a", "primary-fixed-dim": "#ffb59d", "surface-container-highest": "#ebe1da",
+          "on-tertiary-fixed-variant": "#524532", "surface": "#fff8f5", "secondary-container": "#dae7cd",
+          "on-surface": "#1f1b17", "background": "#fff8f5", "tertiary-fixed-dim": "#d7c4ac",
+          "on-tertiary-fixed": "#241a0b", "inverse-on-surface": "#f9efe8", "secondary": "#56624e",
+          "surface-dim": "#e2d8d2", "error-container": "#ffdad6", "surface-tint": "#904b35",
+        },
+        borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+        spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
+        fontFamily: {
+          "body-lg": ["DM Sans"], "display-lg": ["EB Garamond"], "headline-md": ["EB Garamond"],
+          "display-lg-mobile": ["EB Garamond"], "body-md": ["DM Sans"], "headline-lg": ["EB Garamond"], "label-sm": ["DM Sans"],
+        },
+        fontSize: {
+          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "display-lg": ["80px", { lineHeight: "88px", letterSpacing: "-0.02em", fontWeight: "400" }],
+          "headline-md": ["32px", { lineHeight: "40px", fontWeight: "400" }],
+          "display-lg-mobile": ["48px", { lineHeight: "52px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-lg": ["36px", { lineHeight: "44px", fontWeight: "400" }],
+          "label-sm": ["13px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+        },
+      },
+    },
+  };
+</script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex antialiased">
+
+<!-- Left Side: Atmospheric Photography -->
+<div class="hidden lg:flex w-[45%] relative bg-surface-container-high overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover" alt="Handmade ceramic teacup resting on a wooden shelf in a pottery studio" src="https://images.unsplash.com/photo-1610206349499-c932c3b3aacb?auto=format&fit=crop&w=1400&q=80" />
+<div class="absolute inset-0 bg-gradient-to-t from-on-background/70 via-on-background/10 to-transparent"></div>
+<div class="absolute bottom-16 left-12 right-12 text-surface-container-lowest">
+<h2 class="font-headline-md text-headline-md mb-2 drop-shadow-sm">Make something that feels like you.</h2>
+<p class="font-body-lg text-body-lg text-surface-container-low drop-shadow-sm">A live 3D ceramic design studio.</p>
+</div>
+</div>
+
+<!-- Right Side: Login Form -->
+<div class="w-full lg:w-[55%] flex flex-col justify-center px-6 sm:px-margin-mobile lg:px-margin-desktop py-12">
+<div class="max-w-[440px] mx-auto w-full">
+
+<div class="mb-10 text-center lg:text-left">
+<a href="index.html" class="font-headline-lg text-headline-lg text-primary tracking-tight mb-2 block">Mud Magic <span class="text-outline font-light px-2">×</span> Studio</a>
+<p class="font-body-md text-body-md text-on-surface-variant">Sign in to continue your creative journey.</p>
+</div>
+
+<form id="login-form" class="space-y-6" novalidate>
+<div class="space-y-4">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase" for="email">Email Address</label>
+<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-3 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="email" placeholder="you@example.com" type="email" autocomplete="email" />
+<p class="text-error text-xs mt-1 hidden" data-error-for="email">Enter a valid email address.</p>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase" for="password">Password</label>
+<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-3 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="password" placeholder="••••••••" type="password" autocomplete="current-password" />
+<p class="text-error text-xs mt-1 hidden" data-error-for="password">Password must be at least 6 characters.</p>
+</div>
+</div>
+
+<button id="login-submit" class="w-full bg-primary text-on-primary font-label-sm text-label-sm uppercase py-4 rounded hover:bg-surface-tint transition-colors shadow-sm mt-8 flex items-center justify-center gap-2" type="submit">
+<span id="login-submit-label">Continue</span>
+<span class="material-symbols-outlined mm-breathe hidden" id="login-spinner" style="font-size:18px;">autorenew</span>
+</button>
+
+<div class="flex items-center my-8">
+<div class="flex-grow border-t border-outline-variant"></div>
+<span class="px-4 font-label-sm text-label-sm text-outline uppercase">Or</span>
+<div class="flex-grow border-t border-outline-variant"></div>
+</div>
+
+<div class="space-y-3">
+<button class="w-full flex items-center justify-center gap-3 bg-surface-container-lowest border border-outline text-on-background font-body-md text-body-md py-3 rounded hover:bg-surface-container-low transition-colors" type="button" data-provider="Google">
+<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
+Continue with Google
+</button>
+<button class="w-full flex items-center justify-center gap-3 bg-surface-container-lowest border border-outline text-on-background font-body-md text-body-md py-3 rounded hover:bg-surface-container-low transition-colors" type="button" data-provider="Apple">
+<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.126 3.805 3.076 1.519-.05 2.09-.984 3.935-.984 1.818 0 2.368.984 3.961.954 1.658-.027 2.685-1.503 3.668-2.956 1.139-1.688 1.608-3.32 1.633-3.411-.038-.012-3.193-1.228-3.23-4.887-.026-3.056 2.494-4.532 2.608-4.606-1.423-2.09-3.636-2.37-4.42-2.417-1.745-.16-3.415 1.04-4.225 1.04-.81 0-2.167-1.04-3.535-1.04z"></path><path d="M14.945 4.341c.823-1 1.378-2.384 1.228-3.76-1.183.05-2.62.793-3.47 1.785-.758.88-1.423 2.298-1.24 3.638 1.312.102 2.66-.7 3.482-1.663z"></path></svg>
+Continue with Apple
+</button>
+</div>
+</form>
+
+<div class="mt-12 text-center">
+<p class="font-body-md text-body-md text-on-surface-variant mb-2">
+Don't have an account? <a class="text-primary hover:text-surface-tint font-medium underline decoration-primary/30 underline-offset-4 transition-colors" href="studio.html">Create your first mug for free</a>
+</p>
+<p class="font-label-sm text-label-sm text-outline uppercase tracking-wider">No design experience required.</p>
+</div>
+</div>
+</div>
+
+<script src="js/api-client.js"></script>
+<script src="js/main.js"></script>
+<script>
+  // Real auth flow against the Project API (see ../api). The form only
+  // collects an email, so we derive a username and try register-then-login
+  // (see api-client.js for the exact contract) — a single field acts as
+  // both sign-up and sign-in.
+  (function () {
+    const form = document.getElementById("login-form");
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+    const submitBtn = document.getElementById("login-submit");
+    const submitLabel = document.getElementById("login-submit-label");
+    const spinner = document.getElementById("login-spinner");
+
+    function setError(input, show) {
+      const msg = document.querySelector(`[data-error-for="${input.id}"]`);
+      input.classList.toggle("border-error", show);
+      if (msg) msg.classList.toggle("hidden", !show);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+      const passwordValid = password.value.length >= 6;
+      setError(email, !emailValid);
+      setError(password, !passwordValid);
+      if (!emailValid || !passwordValid) return;
+
+      submitBtn.disabled = true;
+      submitLabel.textContent = "Signing in";
+      spinner.classList.remove("hidden");
+
+      try {
+        const user = await window.MudMagicAPI.registerOrLogin(email.value.trim(), password.value);
+        window.MudMagic?.showToast(`Signed in as ${user.username}`, { icon: "check_circle" });
+        window.setTimeout(() => {
+          window.location.href = "studio.html";
+        }, 500);
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitLabel.textContent = "Continue";
+        spinner.classList.add("hidden");
+        const message =
+          err.message === "Failed to fetch"
+            ? "Can't reach the API — make sure the backend is running (see README)."
+            : err.message || "Something went wrong. Try again.";
+        window.MudMagic?.showToast(message, { icon: "error" });
+      }
+    });
+
+    document.querySelectorAll("[data-provider]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        window.MudMagic?.showToast(`${btn.dataset.provider} sign-in isn't wired up in this demo`, { icon: "info" });
+      });
+    });
+  })();
+</script>
+</body>
+</html>
