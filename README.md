@@ -1,3 +1,11 @@
+ตอนนี้ที่ทำได้ทั้งหมด 65%
+
+Microservices architecture
+<img width="1536" height="1024" alt="Mud Magic Microservices Architecture" src="https://github.com/user-attachments/assets/e11bac3b-021d-46d5-9bac-4b15ff338908" />
+
+Technology stack diagram
+<img width="1671" height="941" alt="Mud Magic Technology Stack Infographic" src="https://github.com/user-attachments/assets/f8fd5a70-c70d-4be1-a66b-c97f88b6c480" />
+
 # Mud Magic — Full Stack
 
 เว็บไซต์ Mud Magic กับ Project API ตอนนี้เชื่อมกันเป็น **ระบบเดียวจริงๆ**: สั่ง `docker compose up` ครั้งเดียว รัน Postgres + API + เว็บไซต์พร้อมกัน และเว็บไซต์คุยกับ API จริง — มีระบบสมัคร/ล็อกอินจริง และบันทึกแบบมัคที่ออกแบบไว้เป็นข้อมูลในฐานข้อมูลจริง ไม่ใช่แค่ `localStorage` อย่างเดียว
