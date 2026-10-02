@@ -4,7 +4,7 @@ Microservices architecture
 <img width="1536" height="1024" alt="Mud Magic Microservices Architecture" src="https://github.com/user-attachments/assets/e11bac3b-021d-46d5-9bac-4b15ff338908" />
 
 Technology stack diagram
-<img width="1671" height="941" alt="Mud Magic Technology Stack Infographic" src="https://github.com/user-attachments/assets/f8fd5a70-c70d-4be1-a66b-c97f88b6c480" />
+<img width="1671" height="941" alt="Mud Magic Technology Stack Infographic" src="https://github.com/user-attachments/assets/f8fd5a70-c70d-4be1-a66b-c97f88b6c480"/>
 
 # Mud Magic — Full Stack
 
