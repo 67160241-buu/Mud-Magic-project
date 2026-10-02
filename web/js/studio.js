@@ -1,56 +1,87 @@
-// studio.js — the actual 3D editor. Everything here is real: geometry is
-// rebuilt live from the toolbar state, the "AI" panel is a deterministic
-// client-side generator (seeded by the prompt text) that renders genuine
-// offscreen snapshots of candidate designs, and Save/Share persist state
-// to localStorage / the URL. There is no backend in this build, so no
-// network call is faked — the generator says what it is in the UI copy.
+// studio.js — the Mud Magic studio editor.
+//
+// One config object (see vessels.js) drives everything: the 3D pot built by
+// pot-engine.js, the profile-curve editor, the feasibility card, the guide
+// export and the AI variations. Every control changes the config through
+// `apply()`, which rebuilds the pot, refreshes the UI, records undo history and
+// autosaves. Nothing here is faked: the feasibility numbers come from the
+// heuristic in vessels.js, the variations are real configs rendered to real
+// offscreen snapshots, and Save / Share persist the actual config.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import {
-  buildMugGroup,
-  disposeMugGroup,
-  GLAZES,
-  SHAPES,
-  HANDLES,
-  SURFACES,
-  DEFAULT_CONFIG,
-  PATTERNS,
-} from "./mug-model.js";
+import { buildPotGroup, disposePotGroup, exportGroupObj } from "./pot-engine.js";
+import { createProfileEditor } from "./profile-editor.js";
 import { Sculptor } from "./sculpt.js";
-import { suggestDesigns, aiAvailable, offlineSuggestions } from "./ai-design.js";
+import { aiAvailable } from "./ai-design.js";
+import { suggestVessels, remixConfig } from "./vessel-ai.js";
+import {
+  VESSELS, VESSEL_IDS, NECKS, FEET, HANDLES, CLAYS, TEXTURES, FINISHES, GLAZES, RAW_GLAZE,
+  PATTERNS, COLOR_PATTERNS, DEFAULT_LAB, DEFAULT_CONFIG, SKILLS,
+  normalizeConfig, encodeConfig, decodeConfig, assess, summaryLine, buildGuide, variationTitle, variationSubtitle,
+} from "./vessels.js";
+
+const $ = (id) => document.getElementById(id);
+const toast = (msg, icon) => window.MudMagic?.showToast(msg, icon ? { icon } : undefined);
 
 /* ------------------------------------------------------------------ */
 /* State                                                               */
 /* ------------------------------------------------------------------ */
-const STORAGE_KEY = "mudmagic_design_v1";
+const STORAGE_KEY = "mudmagic_design_v2";
+const LEGACY_STORAGE_KEY = "mudmagic_design_v1";
+const SKILL_KEY = "mudmagic_skill";
+
+function safeGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (err) {
+    return null;
+  }
+}
+function safeSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 function loadInitialConfig() {
-  const fromQuery = {};
   const params = new URLSearchParams(window.location.search);
-  ["shape", "handle", "surface", "color"].forEach((key) => {
-    if (params.get(key)) fromQuery[key] = params.get(key);
-  });
-  if (Object.keys(fromQuery).length) return { ...DEFAULT_CONFIG, ...fromQuery };
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved) return { ...DEFAULT_CONFIG, ...saved };
-  } catch (err) {
-    /* ignore malformed storage */
+  if (params.get("d")) {
+    const decoded = decodeConfig(params.get("d"));
+    if (decoded) return decoded;
   }
-  return { ...DEFAULT_CONFIG };
+  const legacy = {};
+  ["shape", "handle", "surface", "color"].forEach((key) => {
+    if (params.get(key)) legacy[key] = params.get(key);
+  });
+  if (Object.keys(legacy).length) return normalizeConfig(legacy);
+
+  for (const key of [STORAGE_KEY, LEGACY_STORAGE_KEY]) {
+    try {
+      const saved = JSON.parse(safeGet(key) || "null");
+      if (saved) return normalizeConfig(saved);
+    } catch (err) {
+      /* ignore malformed storage */
+    }
+  }
+  return normalizeConfig(DEFAULT_CONFIG);
 }
 
 let config = loadInitialConfig();
+let skill = SKILLS.some((s) => s.id === safeGet(SKILL_KEY)) ? safeGet(SKILL_KEY) : "intermediate";
+let history = [JSON.stringify(config)];
+let historyIndex = 0;
 
 /* ------------------------------------------------------------------ */
 /* Main viewport scene                                                 */
 /* ------------------------------------------------------------------ */
-const viewport = document.getElementById("mug-viewport");
+const viewport = $("mug-viewport");
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
-const DEFAULT_CAMERA_POS = new THREE.Vector3(0, 0.95, 3.4);
-const DEFAULT_TARGET = new THREE.Vector3(0, 0.1, 0);
+const DEFAULT_CAMERA_POS = new THREE.Vector3(0, 0.8, 3.5);
+const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
 camera.position.copy(DEFAULT_CAMERA_POS);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -63,10 +94,10 @@ viewport.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 1.9;
-controls.maxDistance = 5.2;
-controls.minPolarAngle = Math.PI * 0.18;
-controls.maxPolarAngle = Math.PI * 0.85;
+controls.minDistance = 1.6;
+controls.maxDistance = 6;
+controls.minPolarAngle = Math.PI * 0.12;
+controls.maxPolarAngle = Math.PI * 0.88;
 controls.target.copy(DEFAULT_TARGET);
 controls.update();
 
@@ -76,6 +107,8 @@ keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(1024, 1024);
 keyLight.shadow.camera.near = 1;
 keyLight.shadow.camera.far = 10;
+keyLight.shadow.bias = -0.0004; // curved walls shadow themselves; a little bias avoids acne
+keyLight.shadow.normalBias = 0.015;
 scene.add(keyLight);
 
 const fillLight = new THREE.DirectionalLight(0xffe9dd, 0.85);
@@ -83,22 +116,14 @@ fillLight.position.set(-3, 1.2, -2.2);
 scene.add(fillLight);
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(2.4, 48),
-  new THREE.ShadowMaterial({ opacity: 0.16 })
-);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(2.4, 48), new THREE.ShadowMaterial({ opacity: 0.16 }));
 ground.rotation.x = -Math.PI / 2;
-ground.position.y = -0.5;
 ground.receiveShadow = true;
 scene.add(ground);
 
 const sculptor = new Sculptor(camera, renderer.domElement, controls);
 
-/* Brush cursor: a ring showing the sculpt brush's size/position while
- * hovering the mesh. Kept as a direct child of the scene (not of mugGroup,
- * which gets fully disposed and rebuilt on every shape change) and
- * positioned each frame by transforming the sculptor's local-space hit
- * point/normal through mugGroup's current world transform. */
+// Brush cursor: a ring that follows the sculpt brush over the pot.
 const brushCursor = new THREE.Mesh(
   new THREE.RingGeometry(1, 1.06, 32),
   new THREE.MeshBasicMaterial({ color: 0x88452f, side: THREE.DoubleSide, transparent: true, opacity: 0.85, depthTest: false })
@@ -107,22 +132,47 @@ brushCursor.visible = false;
 brushCursor.renderOrder = 10;
 scene.add(brushCursor);
 
-let mugGroup = null;
-function rebuildMug() {
-  if (mugGroup) {
-    scene.remove(mugGroup);
-    disposeMugGroup(mugGroup);
-  }
-  mugGroup = buildMugGroup(config);
-  mugGroup.position.y = -0.5;
-  mugGroup.rotation.y = 0.5;
-  scene.add(mugGroup);
-  sculptor.setTarget(mugGroup.getObjectByName("mug-body"));
+let potGroup = null;
+let potScale = 1;
+let potRotY = 0.5;
+let wireframe = false;
+let autoRotate = false;
+let rebuildQueued = false;
+
+/** World scale that frames any vessel at roughly the same size on screen. */
+function fitScale(group) {
+  const { height, radius } = group.userData.fit;
+  return Math.min(30, Math.max(0.05, 1.35 / Math.max(height, radius * 2 * 0.85, 0.05)));
 }
-rebuildMug();
+
+function rebuildPot() {
+  rebuildQueued = false;
+  if (potGroup) {
+    potRotY = potGroup.rotation.y;
+    scene.remove(potGroup);
+    disposePotGroup(potGroup);
+  }
+  potGroup = buildPotGroup(config);
+  potScale = fitScale(potGroup);
+  potGroup.scale.setScalar(potScale);
+  potGroup.position.y = -(potGroup.userData.fit.height * potScale) / 2;
+  potGroup.rotation.y = potRotY;
+  ground.position.y = potGroup.position.y - 0.003;
+  const body = potGroup.getObjectByName("pot-body");
+  if (body) body.material.wireframe = wireframe;
+  scene.add(potGroup);
+  sculptor.setTarget(body);
+  updateReadouts();
+}
+
+function scheduleRebuild() {
+  if (rebuildQueued) return;
+  rebuildQueued = true;
+  requestAnimationFrame(rebuildPot);
+}
 
 function updateBrushCursor() {
-  if (!sculptor.active) {
+  if (!sculptor.active || !potGroup) {
     brushCursor.visible = false;
     return;
   }
@@ -134,10 +184,10 @@ function updateBrushCursor() {
   }
   brushCursor.visible = true;
   brushCursor.position.copy(localPoint);
-  mugGroup.localToWorld(brushCursor.position);
-  brushCursor.scale.setScalar(sculptor.brushRadius);
+  potGroup.localToWorld(brushCursor.position);
+  brushCursor.scale.setScalar(sculptor.brushRadius * potScale);
   if (localNormal) {
-    const worldNormal = localNormal.clone().transformDirection(mugGroup.matrixWorld);
+    const worldNormal = localNormal.clone().transformDirection(potGroup.matrixWorld);
     brushCursor.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), worldNormal);
   }
 }
@@ -152,282 +202,486 @@ function resizeViewport() {
 new ResizeObserver(resizeViewport).observe(viewport);
 resizeViewport();
 
-let autoRotate = false;
 function animate() {
   requestAnimationFrame(animate);
-  if (autoRotate) mugGroup.rotation.y += 0.006;
+  if (autoRotate && potGroup) potGroup.rotation.y += 0.006;
   sculptor.tick();
   updateBrushCursor();
   controls.update();
   renderer.render(scene, camera);
 }
-animate();
 
 /* ------------------------------------------------------------------ */
-/* Toolbar wiring                                                      */
+/* UI building blocks                                                  */
 /* ------------------------------------------------------------------ */
-const ACTIVE_BTN = ["border-primary", "bg-surface-container-low", "text-primary"];
-const INACTIVE_BTN = ["border-outline-variant", "text-on-surface-variant", "bg-white"];
+const OPT_BASE = "border text-xs py-1.5 px-2 rounded-md text-left transition-colors ";
+const OPT_ON = "border-primary bg-surface-container-low text-primary font-medium";
+const OPT_OFF = "border-outline-variant/60 bg-white text-on-surface-variant hover:border-primary";
 
-function refreshToolbarState() {
-  document.querySelectorAll("[data-shape]").forEach((btn) => {
-    const active = btn.dataset.shape === config.shape;
-    ACTIVE_BTN.forEach((c) => btn.classList.toggle(c, active));
-    INACTIVE_BTN.forEach((c) => btn.classList.toggle(c, !active));
-  });
-  document.querySelectorAll("[data-handle]").forEach((btn) => {
-    const active = btn.dataset.handle === config.handle;
-    ACTIVE_BTN.forEach((c) => btn.classList.toggle(c, active));
-    INACTIVE_BTN.forEach((c) => btn.classList.toggle(c, !active));
-  });
-  document.querySelectorAll("[data-surface]").forEach((btn) => {
-    const active = btn.dataset.surface === config.surface;
-    btn.classList.toggle("border-primary", active);
-    btn.classList.toggle("bg-surface-container-low", active);
-    btn.classList.toggle("text-primary", active);
-    btn.classList.toggle("border-outline-variant", !active);
-    btn.classList.toggle("bg-white", !active);
-    btn.classList.toggle("text-on-surface-variant", !active);
-    const icon = btn.querySelector(".mm-radio-icon");
-    if (icon) icon.textContent = active ? "radio_button_checked" : "radio_button_unchecked";
-  });
-  document.querySelectorAll("[data-color]").forEach((btn) => {
-    const active = btn.dataset.color.toLowerCase() === config.color.toLowerCase();
-    btn.classList.toggle("ring-2", active);
-    btn.classList.toggle("ring-primary", active);
-    btn.classList.toggle("ring-offset-2", active);
-    btn.classList.toggle("ring-offset-surface", active);
-    btn.classList.toggle("ring-1", !active);
-    btn.classList.toggle("ring-outline-variant/50", !active);
-  });
-  const shapeLabel = document.getElementById("mm-config-summary");
-  if (shapeLabel) {
-    const glaze = GLAZES.find((g) => g.hex.toLowerCase() === config.color.toLowerCase());
-    shapeLabel.textContent = `${cap(config.shape)} \u00b7 ${cap(config.handle)} handle \u00b7 ${cap(config.surface)} \u00b7 ${glaze ? glaze.label : "Custom"} glaze`;
-  }
-}
-function cap(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function applyConfig(partial, { persist = true } = {}) {
-  config = { ...config, ...partial };
-  rebuildMug();
-  refreshToolbarState();
-  if (persist) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    } catch (err) {
-      /* storage disabled — non-fatal */
-    }
-  }
-}
-
-document.querySelectorAll("[data-shape]").forEach((btn) =>
-  btn.addEventListener("click", () => applyConfig({ shape: btn.dataset.shape }))
-);
-document.querySelectorAll("[data-handle]").forEach((btn) =>
-  btn.addEventListener("click", () => applyConfig({ handle: btn.dataset.handle }))
-);
-document.querySelectorAll("[data-surface]").forEach((btn) =>
-  btn.addEventListener("click", () => applyConfig({ surface: btn.dataset.surface }))
-);
-document.querySelectorAll("[data-color]").forEach((btn) =>
-  btn.addEventListener("click", () => applyConfig({ color: btn.dataset.color }))
-);
-
-refreshToolbarState();
-
-/* ------------------------------------------------------------------ */
-/* Surface pattern: scallops / ripples / ruffles (wave modulation)      */
-/* ------------------------------------------------------------------ */
-const patternGrid = document.getElementById("mm-pattern-grid");
-const patternControls = document.getElementById("mm-pattern-controls");
-const patternCount = document.getElementById("mm-pattern-count");
-const patternDepth = document.getElementById("mm-pattern-depth");
-const patternTwist = document.getElementById("mm-pattern-twist");
-
-let activePatternId = "none";
-
-/** Which slider drives the count depends on whether the preset is a
- * circumference pattern (scallops) or a height pattern (ripples). */
-function patternIsRipple(mod) {
-  return !!mod && mod.ripples > 0 && !(mod.scallops > 0);
-}
-
-function currentPatternMod() {
-  const preset = PATTERNS.find((p) => p.id === activePatternId);
-  if (!preset || !preset.mod) return null;
-  const mod = { ...preset.mod };
-  const count = Number(patternCount.value);
-  const depth = Number(patternDepth.value);
-  const twist = Number(patternTwist.value);
-
-  if (patternIsRipple(mod)) {
-    mod.ripples = count;
-    mod.rippleDepth = depth * 0.4; // ripples read much stronger than scallops
-  } else {
-    mod.scallops = count;
-    mod.scallopDepth = depth;
-    if (mod.ripples > 0) mod.rippleDepth = depth * 0.4;
-  }
-  if (twist > 0) {
-    mod.ruffles = mod.ruffles || 1;
-    mod.ruffleDepth = twist;
-  } else if (!preset.mod.ruffles) {
-    mod.ruffles = 0;
-  }
-  return mod;
-}
-
-function syncPatternSliderLabels() {
-  document.getElementById("mm-pattern-count-val").textContent = patternCount.value;
-  document.getElementById("mm-pattern-depth-val").textContent = Number(patternDepth.value).toFixed(3);
-  document.getElementById("mm-pattern-twist-val").textContent = Number(patternTwist.value).toFixed(2);
-}
-
-function refreshPatternButtons() {
-  patternGrid.querySelectorAll("[data-pattern]").forEach((btn) => {
-    const active = btn.dataset.pattern === activePatternId;
-    btn.classList.toggle("border-primary", active);
-    btn.classList.toggle("text-primary", active);
-    btn.classList.toggle("bg-surface-container-low", active);
-    btn.classList.toggle("border-outline-variant", !active);
-    btn.classList.toggle("text-on-surface-variant", !active);
-  });
-  patternControls.classList.toggle("hidden", activePatternId === "none");
-}
-
-function applyPattern() {
-  syncPatternSliderLabels();
-  refreshPatternButtons();
-  applyConfig({ modulation: currentPatternMod() });
-}
-
-if (patternGrid) {
-  PATTERNS.forEach((p) => {
+/** A grid of single-choice buttons. Returns { refresh(currentId) }. */
+function optionGrid(containerId, entries, onPick) {
+  const container = $(containerId);
+  container.innerHTML = "";
+  const buttons = new Map();
+  entries.forEach((entry) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.dataset.pattern = p.id;
-    btn.className = "border font-body-md text-sm py-2 rounded-lg text-center transition-colors";
-    btn.textContent = p.label;
-    btn.addEventListener("click", () => {
-      activePatternId = p.id;
-      // Seed the sliders from the preset so the controls match what you see.
-      if (p.mod) {
-        patternCount.value = patternIsRipple(p.mod) ? p.mod.ripples : p.mod.scallops;
-        patternDepth.value = patternIsRipple(p.mod) ? (p.mod.rippleDepth / 0.4).toFixed(3) : p.mod.scallopDepth;
-        patternTwist.value = p.mod.ruffles > 0 ? p.mod.ruffleDepth : 0;
+    btn.dataset.id = entry.id;
+    if (entry.title) btn.title = entry.title;
+    btn.dataset.extra = entry.extraClass || "";
+    btn.className = OPT_BASE + btn.dataset.extra;
+    btn.innerHTML = entry.html;
+    btn.addEventListener("click", () => onPick(entry.id));
+    container.appendChild(btn);
+    buttons.set(entry.id, btn);
+  });
+  return {
+    refresh(currentId) {
+      buttons.forEach((btn, id) => {
+        const on = id === currentId;
+        btn.className = OPT_BASE + (btn.dataset.extra || "") + (on ? OPT_ON : OPT_OFF);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    },
+  };
+}
+
+/** A labelled range slider. spec: {id,label,min,max,step,fmt,get,set,commit} */
+const sliders = [];
+function addSlider(containerId, spec) {
+  const wrap = document.createElement("div");
+  wrap.className = "space-y-1";
+  wrap.innerHTML = `
+    <div class="flex justify-between text-xs text-on-surface-variant">
+      <label for="in-${spec.id}">${spec.label}</label>
+      <span id="val-${spec.id}" class="font-medium text-on-surface"></span>
+    </div>
+    <input id="in-${spec.id}" type="range" class="w-full accent-primary h-1 cursor-pointer" />`;
+  $(containerId).appendChild(wrap);
+  const input = wrap.querySelector("input");
+  const out = wrap.querySelector("span");
+  input.min = spec.min;
+  input.max = spec.max;
+  input.step = spec.step;
+  const show = (v) => (out.textContent = spec.fmt ? spec.fmt(Number(v)) : String(v));
+  input.addEventListener("input", () => {
+    show(input.value);
+    spec.set(Number(input.value));
+  });
+  input.addEventListener("change", () => pushHistory());
+  const entry = {
+    spec,
+    input,
+    refresh() {
+      const range = spec.range ? spec.range() : null;
+      if (range) {
+        input.min = range[0];
+        input.max = range[1];
       }
-      applyPattern();
-    });
-    patternGrid.appendChild(btn);
-  });
-
-  [patternCount, patternDepth, patternTwist].forEach((el) =>
-    el.addEventListener("input", () => {
-      if (activePatternId === "none") return;
-      applyPattern();
-    })
-  );
-
-  // Restore a saved/shared pattern selection if one round-trips in config.
-  if (config.modulation) {
-    const match = PATTERNS.find((p) => p.mod && p.id !== "none" && JSON.stringify(p.mod) === JSON.stringify(config.modulation));
-    activePatternId = match ? match.id : "none";
-  }
-  syncPatternSliderLabels();
-  refreshPatternButtons();
+      if (document.activeElement !== input) input.value = spec.get();
+      show(spec.get());
+    },
+  };
+  sliders.push(entry);
+  entry.refresh();
+  return entry;
 }
 
 /* ------------------------------------------------------------------ */
-/* Sculpt tool: toggle, brush size/strength, push/pull, reset           */
+/* Config changes, history, persistence                                */
 /* ------------------------------------------------------------------ */
-const sculptToggleBtn = document.getElementById("mm-sculpt-toggle");
-const sculptControls = document.getElementById("mm-sculpt-controls");
-const brushSizeInput = document.getElementById("mm-brush-size");
-const brushStrengthInput = document.getElementById("mm-brush-strength");
-const sculptResetBtn = document.getElementById("mm-sculpt-reset");
-const sculptHint = document.getElementById("mm-sculpt-hint");
-
-if (sculptToggleBtn) {
-  sculptToggleBtn.addEventListener("click", () => {
-    const nextActive = !sculptor.active;
-    sculptor.setActive(nextActive);
-    sculptToggleBtn.classList.toggle("bg-primary", nextActive);
-    sculptToggleBtn.classList.toggle("text-on-primary", nextActive);
-    sculptToggleBtn.classList.toggle("bg-white", !nextActive);
-    sculptToggleBtn.classList.toggle("text-on-surface-variant", !nextActive);
-    if (sculptControls) sculptControls.classList.toggle("hidden", !nextActive);
-    if (sculptHint) sculptHint.classList.toggle("hidden", !nextActive);
-    if (nextActive) {
-      // Auto-rotate and drag-to-sculpt would fight each other over the pointer.
-      autoRotate = false;
-      if (rotateBtn) rotateBtn.classList.remove("text-primary");
+let saveTimer = null;
+function persistSoon() {
+  window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    const ok = safeSet(STORAGE_KEY, JSON.stringify(config));
+    const label = $("mm-save-status");
+    if (label) {
+      const t = new Date();
+      label.textContent = ok
+        ? `บันทึกอัตโนมัติ ${t.getHours().toString().padStart(2, "0")}:${t.getMinutes().toString().padStart(2, "0")}`
+        : "เก็บในเครื่องไม่ได้";
     }
-  });
+  }, 350);
 }
 
-if (brushSizeInput) {
-  sculptor.setBrushRadius(Number(brushSizeInput.value));
-  brushSizeInput.addEventListener("input", () => sculptor.setBrushRadius(Number(brushSizeInput.value)));
+function pushHistory() {
+  const snap = JSON.stringify(config);
+  if (snap === history[historyIndex]) return;
+  history = history.slice(0, historyIndex + 1);
+  history.push(snap);
+  if (history.length > 80) history.shift();
+  historyIndex = history.length - 1;
+  refreshHistoryButtons();
 }
-if (brushStrengthInput) {
-  sculptor.setBrushStrength(Number(brushStrengthInput.value));
-  brushStrengthInput.addEventListener("input", () => sculptor.setBrushStrength(Number(brushStrengthInput.value)));
+function refreshHistoryButtons() {
+  $("mm-undo-btn").disabled = historyIndex <= 0;
+  $("mm-redo-btn").disabled = historyIndex >= history.length - 1;
+}
+function stepHistory(delta) {
+  const next = historyIndex + delta;
+  if (next < 0 || next >= history.length) return;
+  historyIndex = next;
+  config = normalizeConfig(JSON.parse(history[historyIndex]));
+  scheduleRebuild();
+  refreshUI();
+  refreshHistoryButtons();
+  persistSoon();
 }
 
-document.querySelectorAll("[data-sculpt-mode]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    sculptor.setMode(btn.dataset.sculptMode);
-    document.querySelectorAll("[data-sculpt-mode]").forEach((b) => {
-      const isActive = b === btn;
-      b.classList.toggle("bg-primary", isActive);
-      b.classList.toggle("text-on-primary", isActive);
-      b.classList.toggle("bg-white", !isActive);
-      b.classList.toggle("text-on-surface-variant", !isActive);
+/**
+ * The single entry point for changing the design.
+ * @param {object} partial fields to overwrite on the config
+ * @param {{commit?:boolean, skipEditor?:boolean}} [opts] commit=false while a slider is being dragged
+ */
+function apply(partial, { commit = true, skipEditor = false } = {}) {
+  config = normalizeConfig({ ...config, ...partial });
+  scheduleRebuild();
+  refreshUI({ skipEditor });
+  persistSoon();
+  if (commit) pushHistory();
+}
+const applyLab = (patch, opts) => apply({ lab: { ...config.lab, ...patch } }, opts);
+
+/* ------------------------------------------------------------------ */
+/* Controls                                                            */
+/* ------------------------------------------------------------------ */
+const vesselGrid = optionGrid(
+  "vessel-grid",
+  VESSEL_IDS.map((id) => ({
+    id,
+    title: VESSELS[id].en,
+    extraClass: "flex flex-col items-center gap-0.5 text-center ",
+    html: `<span class="material-symbols-outlined text-[18px]">${VESSELS[id].icon}</span>${VESSELS[id].label}`,
+  })),
+  (id) => {
+    if (id === config.vessel) return;
+    const fresh = normalizeConfig({
+      ...config,
+      vessel: id,
+      height: undefined,
+      belly: undefined,
+      wall: undefined,
+      neck: undefined,
+      foot: undefined,
+      handle: undefined,
+      lab: { ...config.lab, nodes: null },
     });
+    apply(fresh);
+  }
+);
+
+const neckGrid = optionGrid(
+  "neck-grid",
+  Object.entries(NECKS).map(([id, n]) => ({ id, title: n.en, html: n.label })),
+  (id) => apply({ neck: id })
+);
+const footGrid = optionGrid(
+  "foot-grid",
+  Object.entries(FEET).map(([id, f]) => ({ id, title: f.en, html: f.label, extraClass: "text-center " })),
+  (id) => apply({ foot: id })
+);
+const handleGrid = optionGrid(
+  "handle-grid",
+  Object.entries(HANDLES).map(([id, h]) => ({ id, title: h.en, html: h.label })),
+  (id) => apply({ handle: id })
+);
+const clayGrid = optionGrid(
+  "clay-grid",
+  Object.entries(CLAYS).map(([id, c]) => ({
+    id,
+    title: c.short,
+    html: `<span class="inline-block w-3 h-3 rounded-full border border-outline/30 align-middle mr-1.5" style="background:${c.hex}"></span>${c.label}`,
+  })),
+  (id) => apply({ clay: id })
+);
+const textureGrid = optionGrid(
+  "texture-grid",
+  Object.entries(TEXTURES).map(([id, t]) => ({ id, html: t.label })),
+  (id) => apply({ texture: id })
+);
+const finishGrid = optionGrid(
+  "finish-grid",
+  Object.entries(FINISHES).map(([id, f]) => ({ id, html: f.label, extraClass: "text-center " })),
+  (id) => apply({ surface: id })
+);
+
+// Glaze swatches + unglazed + custom colour
+const glazeRow = $("glaze-row");
+const glazeButtons = [];
+GLAZES.forEach((g) => {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.title = g.label;
+  btn.dataset.color = g.hex;
+  btn.setAttribute("aria-label", `สีเคลือบ ${g.label}`);
+  btn.className = "w-7 h-7 rounded-full transition-all";
+  btn.style.background = g.hex;
+  btn.addEventListener("click", () => apply({ color: g.hex }));
+  glazeRow.appendChild(btn);
+  glazeButtons.push(btn);
+});
+const rawBtn = document.createElement("button");
+rawBtn.type = "button";
+rawBtn.title = "ไม่เคลือบ (เห็นเนื้อดิน)";
+rawBtn.dataset.color = RAW_GLAZE;
+rawBtn.setAttribute("aria-label", "ไม่เคลือบ");
+rawBtn.className = "w-7 h-7 rounded-full transition-all flex items-center justify-center bg-white";
+rawBtn.innerHTML = '<span class="material-symbols-outlined text-outline" style="font-size:16px;">block</span>';
+rawBtn.addEventListener("click", () => apply({ color: RAW_GLAZE }));
+glazeRow.appendChild(rawBtn);
+glazeButtons.push(rawBtn);
+const customColor = document.createElement("input");
+customColor.type = "color";
+customColor.title = "เลือกสีเอง";
+customColor.setAttribute("aria-label", "เลือกสีเคลือบเอง");
+customColor.className = "w-7 h-7 p-0 border border-outline-variant rounded-full cursor-pointer bg-white overflow-hidden";
+customColor.value = "#A65D45";
+customColor.addEventListener("input", () => apply({ color: customColor.value }, { commit: false }));
+customColor.addEventListener("change", () => pushHistory());
+glazeRow.appendChild(customColor);
+
+function refreshGlaze() {
+  const cur = String(config.color).toLowerCase();
+  glazeButtons.forEach((btn) => {
+    const on = btn.dataset.color.toLowerCase() === cur;
+    btn.className =
+      "w-7 h-7 rounded-full transition-all flex items-center justify-center " +
+      (btn.dataset.color === RAW_GLAZE ? "bg-white " : "") +
+      (on ? "ring-2 ring-primary ring-offset-2 ring-offset-white" : "ring-1 ring-outline-variant/60 hover:scale-110");
   });
+  if (/^#[0-9a-f]{6}$/i.test(cur)) customColor.value = cur;
+}
+
+/* ---- surface pattern (scallops / ripples / ruffles) ---- */
+function isRippleMod(mod) {
+  return !!mod && mod.ripples > 0 && !(mod.scallops > 0);
+}
+function inferPatternId(mod) {
+  if (!mod) return "none";
+  const hit = PATTERNS.find(
+    (p) =>
+      p.mod &&
+      p.mod.scallopMotif === mod.scallopMotif &&
+      p.mod.scallopWaveform === mod.scallopWaveform &&
+      p.mod.ripples > 0 === mod.ripples > 0 &&
+      p.mod.scallops > 0 === mod.scallops > 0 &&
+      p.mod.ruffles > 0 === mod.ruffles > 0
+  );
+  return hit ? hit.id : null; // null = a custom mix; keep the sliders visible, highlight nothing
+}
+let activePatternId = inferPatternId(config.modulation) || "none";
+
+const patternGrid = optionGrid(
+  "pattern-grid",
+  PATTERNS.map((p) => ({ id: p.id, html: p.label, extraClass: "text-center " })),
+  (id) => {
+    activePatternId = id;
+    const preset = PATTERNS.find((p) => p.id === id);
+    apply({ modulation: preset && preset.mod ? { ...preset.mod } : null });
+  }
+);
+
+function patternPart(mod) {
+  const ripple = isRippleMod(mod);
+  return {
+    count: mod ? (ripple ? mod.ripples : mod.scallops) : 12,
+    depth: mod ? (ripple ? mod.rippleDepth / 0.4 : mod.scallopDepth) : 0.035,
+    twist: mod && mod.ruffles > 0 ? mod.ruffleDepth : 0,
+  };
+}
+function editPattern(patch) {
+  const mod = config.modulation ? { ...config.modulation } : null;
+  if (!mod) return;
+  const cur = patternPart(mod);
+  const next = { ...cur, ...patch };
+  if (isRippleMod(mod)) {
+    mod.ripples = next.count;
+    mod.rippleDepth = next.depth * 0.4;
+  } else {
+    mod.scallops = next.count;
+    mod.scallopDepth = next.depth;
+    if (mod.ripples > 0) mod.rippleDepth = next.depth * 0.4;
+  }
+  if (next.twist > 0) {
+    mod.ruffles = mod.ruffles || 1;
+    mod.ruffleDepth = next.twist;
+  } else {
+    mod.ruffles = 0;
+  }
+  apply({ modulation: mod }, { commit: false });
+}
+addSlider("pattern-controls", {
+  id: "pat-count", label: "จำนวนร่อง/วง", min: 3, max: 28, step: 1,
+  get: () => patternPart(config.modulation).count, set: (v) => editPattern({ count: v }),
+});
+addSlider("pattern-controls", {
+  id: "pat-depth", label: "ความลึก", min: 0.005, max: 0.09, step: 0.005, fmt: (v) => v.toFixed(3),
+  get: () => patternPart(config.modulation).depth, set: (v) => editPattern({ depth: v }),
+});
+addSlider("pattern-controls", {
+  id: "pat-twist", label: "บิดเกลียว", min: 0, max: 1.2, step: 0.05, fmt: (v) => v.toFixed(2),
+  get: () => patternPart(config.modulation).twist, set: (v) => editPattern({ twist: v }),
 });
 
-if (sculptResetBtn) {
-  sculptResetBtn.addEventListener("click", () => {
-    // Rebuilding from the current preset config discards all sculpt
-    // displacement and restores the clean parametric surface.
-    rebuildMug();
-    window.MudMagic?.showToast("ล้างการปั้นอิสระ กลับเป็นทรงตั้งต้นแล้ว", { icon: "restart_alt" });
-  });
-}
-/* ------------------------------------------------------------------ */
-const rotateBtn = document.getElementById("mm-rotate-btn");
-const zoomBtn = document.getElementById("mm-zoom-btn");
-const resetBtn = document.getElementById("mm-reset-btn");
+/* ---- geometry sliders ---- */
+addSlider("geo-sliders", {
+  id: "height", label: "ความสูง", min: 5, max: 45, step: 0.5, fmt: (v) => `${v} ซม.`,
+  range: () => VESSELS[config.vessel].height, get: () => config.height, set: (v) => apply({ height: v }, { commit: false }),
+});
+addSlider("geo-sliders", {
+  id: "belly", label: "เส้นผ่านศูนย์กลางตัว", min: 6, max: 36, step: 0.5, fmt: (v) => `${v} ซม.`,
+  range: () => VESSELS[config.vessel].belly, get: () => config.belly, set: (v) => apply({ belly: v }, { commit: false }),
+});
+addSlider("geo-sliders", {
+  id: "wall", label: "ความหนาผนัง", min: 0.4, max: 1.5, step: 0.05, fmt: (v) => `${v.toFixed(2)} ซม.`,
+  range: () => VESSELS[config.vessel].wall, get: () => config.wall, set: (v) => apply({ wall: v }, { commit: false }),
+});
 
-if (rotateBtn) {
-  rotateBtn.addEventListener("click", () => {
-    autoRotate = !autoRotate;
-    rotateBtn.classList.toggle("text-primary", autoRotate);
+/* ---- lab sliders ---- */
+const labSlider = (container, key, label, min, max, step, fmt) =>
+  addSlider(container, {
+    id: `lab-${key}`, label, min, max, step, fmt,
+    get: () => (key === "polySides" && config.lab.polySides < 3 ? 0 : config.lab[key]),
+    set: (v) => applyLab({ [key]: key === "polySides" && v < 3 ? 0 : v }, { commit: false }),
   });
+const f2 = (v) => v.toFixed(2);
+labSlider("lab-sliders-shape", "polySides", "หน้าตัดหลายเหลี่ยม", 0, 12, 1, (v) => (v < 3 ? "กลม" : `${v} ด้าน`));
+labSlider("lab-sliders-shape", "polyRound", "ความมนของมุม", -1, 1, 0.05, f2);
+labSlider("lab-sliders-shape", "polyBulge", "ความป่องของด้าน", 0, 0.9, 0.05, f2);
+labSlider("lab-sliders-shape", "aspect", "ยืดหน้าตัด (กว้าง/ลึก)", 0.5, 1.8, 0.05, f2);
+labSlider("lab-sliders-shape", "twist", "บิดหน้าตัด (รอบ)", -2, 2, 0.05, f2);
+labSlider("lab-sliders-shape", "bends", "จำนวนรอบโยกตัว", 0, 8, 0.5, (v) => (v === 0 ? "ปิด" : String(v)));
+labSlider("lab-sliders-shape", "bendDepth", "ความลึกการโยก", 0, 0.4, 0.01, f2);
+labSlider("lab-sliders-shape", "bendPoles", "จำนวนกลีบโยก", 1, 8, 1);
+labSlider("lab-sliders-shape", "helixFreq", "เกลียวทั้งตัว (รอบ)", 0, 4, 0.1, (v) => (v === 0 ? "ปิด" : v.toFixed(1)));
+labSlider("lab-sliders-shape", "helixAmp", "ความกว้างเกลียว", 0, 0.6, 0.02, f2);
+labSlider("lab-sliders-color", "colorCycles", "จำนวนลาย", 1, 16, 1);
+labSlider("lab-sliders-color", "colorSharp", "ความคมของลาย", 0, 1, 0.05, f2);
+
+const cpatGrid = optionGrid(
+  "cpat-grid",
+  Object.entries(COLOR_PATTERNS).map(([id, c]) => ({ id, html: c.label, extraClass: "text-center " })),
+  (id) => applyLab({ colorPattern: id })
+);
+$("in-accent").addEventListener("input", (e) => applyLab({ accent: e.target.value }, { commit: false }));
+$("in-accent").addEventListener("change", () => pushHistory());
+
+/* ---- profile editor ---- */
+const profileEditor = createProfileEditor($("profile-canvas"), {
+  onChange: (nodes) => applyLab({ nodes }, { commit: false, skipEditor: true }),
+  onCommit: (nodes) => applyLab({ nodes }, { commit: true, skipEditor: true }),
+});
+$("profile-delete").addEventListener("click", () => {
+  if (!profileEditor.deleteSelected()) toast("เลือกจุดบนเส้นโค้งก่อน (ต้องเหลืออย่างน้อย 3 จุด)", "info");
+});
+$("profile-reset").addEventListener("click", () => {
+  applyLab({ nodes: null });
+});
+$("lab-reset").addEventListener("click", () => {
+  apply({ lab: { ...DEFAULT_LAB } });
+  toast("ล้างค่าห้องทดลองแล้ว", "restart_alt");
+});
+$("lab-panel").addEventListener("toggle", () => profileEditor.redraw());
+
+/* ---- skill level ---- */
+const skillGrid = optionGrid(
+  "skill-grid",
+  SKILLS.map((s) => ({ id: s.id, title: s.labelEn, html: s.label, extraClass: "flex-1 text-center !px-1 !py-1 text-[11px] " })),
+  (id) => {
+    skill = id;
+    safeSet(SKILL_KEY, id);
+    refreshUI({ skipEditor: true });
+  }
+);
+
+/* ------------------------------------------------------------------ */
+/* Readouts: feasibility card, dimensions, summary                     */
+/* ------------------------------------------------------------------ */
+function updateAssessment() {
+  const a = assess(config, skill);
+  const pct = $("feas-pct");
+  const dot = $("feas-dot");
+  let tone = "secondary";
+  if (a.feasibility < 50) tone = "error";
+  else if (a.feasibility < 75) tone = "tertiary";
+  pct.textContent = `${a.feasibility}% ทำได้`;
+  pct.className =
+    "text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap " +
+    { secondary: "text-secondary bg-secondary-container/70", tertiary: "text-tertiary bg-tertiary-fixed", error: "text-error bg-error-container" }[tone];
+  dot.className = "w-2 h-2 rounded-full animate-pulse " + { secondary: "bg-secondary", tertiary: "bg-tertiary-container", error: "bg-error" }[tone];
+  $("feas-level").textContent = `${a.levelLabel} · ${a.d5}/5`;
+  $("feas-method").textContent = a.method;
+  $("feas-notes").textContent = a.notes.join(" ");
 }
-if (zoomBtn) {
-  let zoomedIn = false;
-  zoomBtn.addEventListener("click", () => {
-    zoomedIn = !zoomedIn;
-    const targetDistance = zoomedIn ? controls.minDistance + 0.4 : DEFAULT_CAMERA_POS.length();
-    const dir = camera.position.clone().sub(controls.target).normalize();
-    const newPos = controls.target.clone().add(dir.multiplyScalar(targetDistance));
-    animateCameraTo(newPos);
-    zoomBtn.classList.toggle("text-primary", zoomedIn);
-  });
+
+function updateReadouts() {
+  updateAssessment();
+  const info = potGroup?.userData.info;
+  const sculpture = VESSELS[config.vessel].solid;
+  const chip = [`สูง ${round1(config.height)} ซม.`, `กว้าง ${round1(config.belly)} ซม.`];
+  if (info && !sculpture) chip.push(`ปาก ${round1(info.rimCm)} ซม.`);
+  $("dim-chip").textContent = chip.join(" · ");
 }
-if (resetBtn) {
-  resetBtn.addEventListener("click", () => {
-    autoRotate = false;
-    if (rotateBtn) rotateBtn.classList.remove("text-primary");
-    if (zoomBtn) zoomBtn.classList.remove("text-primary");
-    animateCameraTo(DEFAULT_CAMERA_POS, DEFAULT_TARGET);
-  });
+const round1 = (n) => Math.round(n * 10) / 10;
+
+/** Syncs every control to the current config. */
+function refreshUI({ skipEditor = false } = {}) {
+  vesselGrid.refresh(config.vessel);
+  neckGrid.refresh(config.neck);
+  footGrid.refresh(config.foot);
+  handleGrid.refresh(config.handle);
+  clayGrid.refresh(config.clay);
+  textureGrid.refresh(config.texture);
+  finishGrid.refresh(config.surface);
+  skillGrid.refresh(skill);
+  cpatGrid.refresh(config.lab.colorPattern);
+  const inferred = inferPatternId(config.modulation);
+  if (inferred !== null) activePatternId = inferred;
+  patternGrid.refresh(inferred === null ? "" : activePatternId);
+  $("pattern-controls").classList.toggle("hidden", !config.modulation);
+  $("lab-sliders-color").classList.toggle("hidden", config.lab.colorPattern === "none");
+  $("in-accent").value = config.lab.accent;
+  refreshGlaze();
+  sliders.forEach((s) => s.refresh());
+  if (!skipEditor) profileEditor.setNodes(config.lab.nodes || VESSELS[config.vessel].nodes);
+  $("dim-summary").textContent = `${round1(config.height)} × ${round1(config.belly)} ซม.`;
+  $("mm-config-summary").textContent = summaryLine(config);
+  updateAssessment();
 }
+
+/* ------------------------------------------------------------------ */
+/* Viewport controls                                                   */
+/* ------------------------------------------------------------------ */
+const rotateBtn = $("mm-rotate-btn");
+const zoomBtn = $("mm-zoom-btn");
+const wireBtn = $("mm-wire-btn");
+
+rotateBtn.addEventListener("click", () => {
+  autoRotate = !autoRotate;
+  rotateBtn.classList.toggle("text-primary", autoRotate);
+});
+let zoomedIn = false;
+zoomBtn.addEventListener("click", () => {
+  zoomedIn = !zoomedIn;
+  const targetDistance = zoomedIn ? controls.minDistance + 0.5 : DEFAULT_CAMERA_POS.length();
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  animateCameraTo(controls.target.clone().add(dir.multiplyScalar(targetDistance)));
+  zoomBtn.classList.toggle("text-primary", zoomedIn);
+});
+wireBtn.addEventListener("click", () => {
+  wireframe = !wireframe;
+  wireBtn.classList.toggle("text-primary", wireframe);
+  const body = potGroup?.getObjectByName("pot-body");
+  if (body) body.material.wireframe = wireframe;
+});
+$("mm-reset-btn").addEventListener("click", () => {
+  autoRotate = false;
+  zoomedIn = false;
+  rotateBtn.classList.remove("text-primary");
+  zoomBtn.classList.remove("text-primary");
+  animateCameraTo(DEFAULT_CAMERA_POS, DEFAULT_TARGET);
+});
 
 function animateCameraTo(position, target) {
   const startPos = camera.position.clone();
@@ -447,147 +701,138 @@ function animateCameraTo(position, target) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Top bar: Save / Preview / Share                                     */
+/* Sculpt tool                                                         */
 /* ------------------------------------------------------------------ */
-const saveBtn = document.getElementById("mm-save-btn");
-const previewBtn = document.getElementById("mm-preview-btn");
-const shareBtn = document.getElementById("mm-share-btn");
-const exitPreviewBtn = document.getElementById("mm-exit-preview");
+const sculptToggleBtn = $("mm-sculpt-toggle");
+const STRENGTH_SCALE = 0.5; // pots are smaller in scene units than the old mug
+sculptor.setBrushRadius(Number($("mm-brush-size").value));
+sculptor.setBrushStrength(Number($("mm-brush-strength").value) * STRENGTH_SCALE);
 
-if (saveBtn) {
-  saveBtn.addEventListener("click", async () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    } catch (err) {
-      window.MudMagic?.showToast("บันทึกไม่ได้ — พื้นที่จัดเก็บใช้งานไม่ได้", { icon: "error" });
-      return;
-    }
-
-    if (window.MudMagicAPI?.isLoggedIn()) {
-      const originalLabel = saveBtn.textContent;
-      saveBtn.disabled = true;
-      try {
-        await window.MudMagicAPI.saveDesignAsProject(config);
-        window.MudMagic?.showToast("บันทึกแบบเข้าบัญชีของคุณแล้ว", { icon: "cloud_done" });
-      } catch (err) {
-        window.MudMagic?.showToast("บันทึกลงเครื่องแล้ว — เชื่อมต่อเซิร์ฟเวอร์บัญชีไม่ได้", { icon: "save" });
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalLabel;
-      }
-    } else {
-      window.MudMagic?.showToast("บันทึกลงเบราว์เซอร์นี้แล้ว — เข้าสู่ระบบเพื่อบันทึกเข้าบัญชี", { icon: "save" });
-    }
+sculptToggleBtn.addEventListener("click", () => {
+  const next = !sculptor.active;
+  sculptor.setActive(next);
+  sculptToggleBtn.classList.toggle("bg-primary", next);
+  sculptToggleBtn.classList.toggle("text-on-primary", next);
+  sculptToggleBtn.classList.toggle("bg-white", !next);
+  sculptToggleBtn.classList.toggle("text-on-surface-variant", !next);
+  $("mm-sculpt-controls").classList.toggle("hidden", !next);
+  $("mm-sculpt-hint").classList.toggle("hidden", !next);
+  if (next) {
+    autoRotate = false;
+    rotateBtn.classList.remove("text-primary");
+  }
+});
+$("mm-brush-size").addEventListener("input", (e) => sculptor.setBrushRadius(Number(e.target.value)));
+$("mm-brush-strength").addEventListener("input", (e) => sculptor.setBrushStrength(Number(e.target.value) * STRENGTH_SCALE));
+document.querySelectorAll("[data-sculpt-mode]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    sculptor.setMode(btn.dataset.sculptMode);
+    document.querySelectorAll("[data-sculpt-mode]").forEach((b) => {
+      const on = b === btn;
+      b.classList.toggle("bg-primary", on);
+      b.classList.toggle("text-on-primary", on);
+      b.classList.toggle("bg-white", !on);
+      b.classList.toggle("text-on-surface-variant", !on);
+    });
   });
+});
+$("mm-sculpt-reset").addEventListener("click", () => {
+  rebuildPot();
+  toast("ล้างการปั้นอิสระ กลับเป็นทรงตั้งต้นแล้ว", "restart_alt");
+});
+
+/* ------------------------------------------------------------------ */
+/* Top bar                                                             */
+/* ------------------------------------------------------------------ */
+function download(filename, text, mime) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
+
+function downloadGuide() {
+  const md = buildGuide(config, skill);
+  download(`mud-magic-${config.vessel}-guide.md`, md, "text/markdown;charset=utf-8");
+  toast("ดาวน์โหลดคู่มือการปั้นแล้ว", "description");
+}
+$("mm-guide-btn").addEventListener("click", downloadGuide);
+$("export-guide").addEventListener("click", downloadGuide);
+$("export-obj").addEventListener("click", () => {
+  if (!potGroup) return;
+  download(`mud-magic-${config.vessel}.obj`, exportGroupObj(potGroup), "text/plain;charset=utf-8");
+  toast("ดาวน์โหลดโมเดล 3D (.obj) แล้ว — หน่วยเป็นเซนติเมตร", "deployed_code");
+});
+
+$("mm-undo-btn").addEventListener("click", () => stepHistory(-1));
+$("mm-redo-btn").addEventListener("click", () => stepHistory(1));
+window.addEventListener("keydown", (e) => {
+  const tag = (e.target && e.target.tagName) || "";
+  if (tag === "TEXTAREA" || tag === "INPUT") return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod) return;
+  const k = e.key.toLowerCase();
+  if (k === "z" && !e.shiftKey) {
+    e.preventDefault();
+    stepHistory(-1);
+  } else if ((k === "z" && e.shiftKey) || k === "y") {
+    e.preventDefault();
+    stepHistory(1);
+  }
+});
+
+$("mm-save-btn").addEventListener("click", async () => {
+  if (!safeSet(STORAGE_KEY, JSON.stringify(config))) {
+    toast("บันทึกไม่ได้ — พื้นที่จัดเก็บใช้งานไม่ได้", "error");
+    return;
+  }
+  if (window.MudMagicAPI?.isLoggedIn()) {
+    const btn = $("mm-save-btn");
+    btn.disabled = true;
+    try {
+      const name = `${VESSELS[config.vessel].label} — ${new Date().toLocaleString("th-TH")}`;
+      await window.MudMagicAPI.saveDesignAsProject(config, name);
+      toast("บันทึกแบบเข้าบัญชีของคุณแล้ว", "cloud_done");
+    } catch (err) {
+      toast("บันทึกลงเครื่องแล้ว — เชื่อมต่อเซิร์ฟเวอร์บัญชีไม่ได้", "save");
+    } finally {
+      btn.disabled = false;
+    }
+  } else {
+    toast("บันทึกลงเบราว์เซอร์นี้แล้ว — เข้าสู่ระบบเพื่อบันทึกเข้าบัญชี", "save");
+  }
+});
 
 function togglePreview(on) {
   document.body.classList.toggle("mm-preview-mode", on);
+  window.setTimeout(resizeViewport, 50);
 }
-if (previewBtn) previewBtn.addEventListener("click", () => togglePreview(true));
-if (exitPreviewBtn) exitPreviewBtn.addEventListener("click", () => togglePreview(false));
+$("mm-preview-btn").addEventListener("click", () => togglePreview(true));
+$("mm-exit-preview").addEventListener("click", () => togglePreview(false));
 
-if (shareBtn) {
-  shareBtn.addEventListener("click", async () => {
-    const params = new URLSearchParams({
-      shape: config.shape,
-      handle: config.handle,
-      surface: config.surface,
-      color: config.color,
-    });
-    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState(null, "", `?${params.toString()}`);
-    try {
-      await navigator.clipboard.writeText(url);
-      window.MudMagic?.showToast("คัดลอกลิงก์แชร์แล้ว", { icon: "link" });
-    } catch (err) {
-      window.MudMagic?.showToast("ลิงก์พร้อมแล้วในแถบที่อยู่เบราว์เซอร์", { icon: "link" });
-    }
-  });
-}
+$("mm-share-btn").addEventListener("click", async () => {
+  const query = `?d=${encodeConfig(config)}`;
+  const url = `${window.location.origin}${window.location.pathname}${query}`;
+  window.history.replaceState(null, "", query);
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("คัดลอกลิงก์แชร์แล้ว", "link");
+  } catch (err) {
+    toast("ลิงก์พร้อมแล้วในแถบที่อยู่เบราว์เซอร์", "link");
+  }
+});
 
 /* ------------------------------------------------------------------ */
-/* AI panel: deterministic, prompt-seeded design generator             */
+/* AI panel                                                            */
 /* ------------------------------------------------------------------ */
-const KEYWORD_MAP = {
-  shape: {
-    tall: ["tall", "slim", "narrow", "elegant", "elongated"],
-    round: ["round", "belly", "bulg", "curvy", "plump"],
-    wide: ["wide", "short", "squat", "stout", "chunky"],
-  },
-  handle: {
-    minimal: ["minimal", "sleek", "thin handle", "delicate", "small handle"],
-    organic: ["organic", "wavy", "asymmetric", "handmade handle", "sculpted"],
-    loop: ["loop", "classic handle", "c-handle", "traditional handle"],
-  },
-  surface: {
-    smooth: ["smooth", "glossy", "glazed", "shiny", "polished"],
-    rough: ["rough", "raw", "unglazed", "stoneware", "textured", "rustic", "speckled"],
-    matte: ["matte", "satin"],
-  },
-  color: {
-    terracotta: ["terracotta", "clay", "orange", "rust", "burnt"],
-    sage: ["green", "sage", "olive", "leaf", "forest"],
-    cream: ["cream", "beige", "sand"],
-    espresso: ["espresso", "brown", "coffee", "chocolate", "walnut"],
-    blush: ["blush", "pink", "rose", "peach"],
-    charcoal: ["charcoal", "black", "dark", "graphite"],
-    denim: ["blue", "denim", "navy", "indigo", "cobalt"],
-    ivory: ["ivory", "white", "snow"],
-  },
-};
-
-function hashSeed(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h) || 1;
-}
-function mulberry32(seed) {
-  let a = seed;
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function pickFromKeywords(promptLower, dict, fallbackList, rng) {
-  for (const key of Object.keys(dict)) {
-    if (dict[key].some((phrase) => promptLower.includes(phrase))) return key;
-  }
-  return fallbackList[Math.floor(rng() * fallbackList.length)];
-}
-
-function generateVariations(prompt, nonce) {
-  const promptLower = prompt.toLowerCase();
-  const seed = hashSeed(`${promptLower}::${nonce}`);
-  const rng = mulberry32(seed);
-
-  const colorIds = GLAZES.map((g) => g.id);
-  const primary = {
-    shape: pickFromKeywords(promptLower, KEYWORD_MAP.shape, SHAPES, rng),
-    handle: pickFromKeywords(promptLower, KEYWORD_MAP.handle, HANDLES, rng),
-    surface: pickFromKeywords(promptLower, KEYWORD_MAP.surface, SURFACES, rng),
-    color: GLAZES.find((g) => g.id === pickFromKeywords(promptLower, KEYWORD_MAP.color, colorIds, rng)).hex,
-  };
-
-  const variants = [primary];
-  while (variants.length < 4) {
-    variants.push({
-      shape: SHAPES[Math.floor(rng() * SHAPES.length)],
-      handle: HANDLES[Math.floor(rng() * HANDLES.length)],
-      surface: SURFACES[Math.floor(rng() * SURFACES.length)],
-      color: GLAZES[Math.floor(rng() * GLAZES.length)].hex,
-    });
-  }
-  return variants;
-}
-
-/* Offscreen renderer reused for every thumbnail snapshot. */
-let thumbRenderer, thumbScene, thumbCamera, thumbGroup;
+let thumbRenderer = null;
+let thumbScene = null;
+let thumbCamera = null;
 function ensureThumbRig() {
   if (thumbRenderer) return;
   thumbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
@@ -595,113 +840,203 @@ function ensureThumbRig() {
   thumbRenderer.outputColorSpace = THREE.SRGBColorSpace;
   thumbScene = new THREE.Scene();
   thumbCamera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-  thumbCamera.position.set(0, 0.75, 3.05);
-  thumbCamera.lookAt(0, 0.05, 0);
+  thumbCamera.position.set(0, 0.6, 3.5);
+  thumbCamera.lookAt(0, -0.02, 0);
   const key = new THREE.DirectionalLight(0xfff4ea, 2.3);
   key.position.set(2, 3, 2.2);
   thumbScene.add(key);
   thumbScene.add(new THREE.AmbientLight(0xffffff, 0.65));
 }
-function renderThumbnail(variantConfig) {
+function renderThumbnail(cfg) {
   ensureThumbRig();
-  if (thumbGroup) {
-    thumbScene.remove(thumbGroup);
-    disposeMugGroup(thumbGroup);
-  }
-  thumbGroup = buildMugGroup(variantConfig);
-  thumbGroup.position.y = -0.48;
-  thumbGroup.rotation.y = 0.65;
-  thumbScene.add(thumbGroup);
+  const group = buildPotGroup(cfg, { rings: 56, sides: 56 });
+  const s = fitScale(group);
+  group.scale.setScalar(s);
+  group.position.y = -(group.userData.fit.height * s) / 2;
+  group.rotation.y = 0.65;
+  thumbScene.add(group);
   thumbRenderer.render(thumbScene, thumbCamera);
-  return thumbRenderer.domElement.toDataURL("image/png");
+  const url = thumbRenderer.domElement.toDataURL("image/png");
+  thumbScene.remove(group);
+  disposePotGroup(group);
+  return url;
 }
 
-const promptInput = document.getElementById("mm-prompt");
-const generateBtn = document.getElementById("mm-generate-btn");
-const variationGrid = document.getElementById("mm-variation-grid");
-let currentVariants = [];
-let selectedVariantIndex = 0;
+const promptInput = $("mm-prompt");
+const generateBtn = $("mm-generate-btn");
+const variationGrid = $("mm-variation-grid");
+let designs = [];
+let thumbs = [];
+let selectedIndex = 0;
 let genNonce = 0;
 
-function renderVariationGrid(variants, selectedIndex = 0, meta = null) {
-  currentVariants = variants;
-  selectedVariantIndex = selectedIndex;
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function setVariations(list, selected = 0) {
+  designs = list;
+  selectedIndex = selected;
+  thumbs = list.map((d) => {
+    try {
+      return renderThumbnail(d.config);
+    } catch (err) {
+      return "";
+    }
+  });
+  $("variation-count").textContent = `${list.length} แบบ`;
+  drawVariations();
+}
+
+function drawVariations() {
   variationGrid.innerHTML = "";
-  variants.forEach((variant, i) => {
-    const info = meta && meta[i];
-    const dataUrl = renderThumbnail(variant);
+  designs.forEach((d, i) => {
+    const on = i === selectedIndex;
     const tile = document.createElement("div");
     tile.className =
       "mm-variation bg-white rounded-xl p-2 border cursor-pointer relative group transition-all " +
-      (i === selectedIndex
-        ? "border-primary shadow-sm is-selected"
-        : "border-outline-variant/50 hover:border-outline-variant hover:shadow-sm");
+      (on ? "border-primary shadow-sm is-selected" : "border-outline-variant/50 hover:border-primary/60 hover:shadow-sm");
     tile.innerHTML = `
-      ${i === selectedIndex ? '<div class="absolute top-2 right-2 bg-primary text-white text-[10px] px-2 py-1 rounded-full font-label-sm z-10">Selected</div>' : ""}
+      ${on ? '<div class="absolute top-2 right-2 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full font-label-sm z-10 shadow-sm">ที่เลือก</div>' : ""}
       <div class="aspect-square bg-[#F9F7F5] rounded-lg overflow-hidden flex items-center justify-center relative">
-        <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="${dataUrl}" alt="แบบมัค: ทรง ${variant.shape} หูจับ ${variant.handle} ผิว ${variant.surface}" />
+        ${thumbs[i] ? `<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="${thumbs[i]}" alt="${esc(d.name)}" />` : ""}
       </div>
-      ${info ? `<p class="mt-2 text-xs font-medium text-on-background leading-tight">${info.name}</p>
-      <p class="text-[11px] text-on-surface-variant leading-snug line-clamp-2">${info.rationale || ""}</p>` : ""}`;
+      <div class="mt-2 px-1 pb-1">
+        <p class="font-label-sm text-xs font-semibold text-on-surface truncate">${esc(d.name)}</p>
+        <p class="text-[10px] text-on-surface-variant truncate">${esc(d.rationale || "")}</p>
+      </div>`;
     tile.addEventListener("click", () => {
-      applyConfig(variant);
-      renderVariationGrid(currentVariants, i);
+      selectedIndex = i;
+      apply(d.config);
+      drawVariations();
     });
     variationGrid.appendChild(tile);
   });
 }
 
-if (generateBtn) {
-  generateBtn.addEventListener("click", async () => {
-    const prompt = (promptInput?.value || "").trim() || "warm ceramic mug with an organic glaze";
-    genNonce += 1;
-    generateBtn.disabled = true;
-    generateBtn.classList.add("opacity-70");
-    const originalHTML = generateBtn.innerHTML;
-    generateBtn.textContent = "กำลังคิดแบบ...";
-
-    // suggestDesigns never throws: if OpenAI isn't configured, is down, or
-    // rate-limits us, it returns offline keyword-generated designs plus a
-    // notice explaining why. Either way we get renderable configs.
-    const { designs, source, notice } = await suggestDesigns(prompt, { count: 4, seed: genNonce });
-    const variants = designs.map((d) => d.renderConfig);
-
-    renderVariationGrid(variants, 0, designs);
-    applyConfig(variants[0]);
-    generateBtn.disabled = false;
-    generateBtn.classList.remove("opacity-70");
-    generateBtn.innerHTML = originalHTML;
-
-    if (notice) {
-      window.MudMagic?.showToast(notice, { icon: "info" });
-    } else {
-      window.MudMagic?.showToast(
-        source === "openai" ? "AI สร้างแบบใหม่ 4 แบบแล้ว" : "สร้างตัวเลือกใหม่ 4 แบบแล้ว",
-        { icon: "auto_awesome" }
-      );
-    }
-  });
+function seedVariations() {
+  const others = remixConfig(config, 1, 3);
+  setVariations(
+    [{ name: variationTitle(config, 0), rationale: variationSubtitle(config), config }, ...others.map((o, i) => ({ ...o, name: variationTitle(o.config, i + 1) }))],
+    0
+  );
 }
 
-// Tell the user plainly which mode is active — whether their prompt text
-// leaves the browser is a privacy-relevant fact, not a detail to bury.
-const aiModeNote = document.getElementById("mm-ai-mode-note");
+generateBtn.addEventListener("click", async () => {
+  const prompt = (promptInput.value || "").trim() || `${VESSELS[config.vessel].label} สไตล์อบอุ่น งานทำมือ`;
+  genNonce += 1;
+  generateBtn.disabled = true;
+  generateBtn.classList.add("opacity-70");
+  const original = generateBtn.innerHTML;
+  generateBtn.textContent = "กำลังคิดแบบ...";
+  try {
+    const { designs: out, source, notice } = await suggestVessels(prompt, {
+      count: 4,
+      seed: genNonce,
+      fallbackVessel: config.vessel,
+      skillLevel: skill,
+    });
+    setVariations(out, 0);
+    apply(out[0].config);
+    toast(notice || (source === "openai" ? "AI สร้างแบบใหม่ 4 แบบแล้ว" : "สร้างตัวเลือกใหม่ 4 แบบแล้ว"), notice ? "info" : "auto_awesome");
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.classList.remove("opacity-70");
+    generateBtn.innerHTML = original;
+  }
+});
+
+$("prompt-clear").addEventListener("click", () => {
+  promptInput.value = "";
+  promptInput.focus();
+});
+const CHIPS = ["ปากบาน", "ปากเบี้ยว", "บีบมือ", "เคลือบเซจ", "ดินทรายจุดด่าง", "ร่องลึก", "ผิวด้าน", "ฐานสูง"];
+CHIPS.forEach((phrase) => {
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "text-[11px] font-label-sm bg-surface-variant/80 hover:bg-surface-variant text-on-surface-variant px-2.5 py-1 rounded-full transition-colors";
+  chip.textContent = `+ ${phrase}`;
+  chip.addEventListener("click", () => {
+    const cur = promptInput.value.trim();
+    promptInput.value = cur ? `${cur} ${phrase}` : phrase;
+  });
+  $("prompt-chips").appendChild(chip);
+});
+
+$("mm-remix-btn").addEventListener("click", () => {
+  genNonce += 1;
+  const base = designs[selectedIndex]?.config || config;
+  const out = remixConfig(base, genNonce, 3);
+  setVariations(
+    [{ name: variationTitle(base, 0), rationale: variationSubtitle(base), config: base }, ...out.map((o, i) => ({ ...o, name: variationTitle(o.config, i + 1) }))],
+    0
+  );
+  toast("สร้างแบบใหม่จากแบบที่เลือกแล้ว", "tune");
+});
+
+/* compare */
+const modal = $("compare-modal");
+function closeCompare() {
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+$("compare-close").addEventListener("click", closeCompare);
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) closeCompare();
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeCompare();
+});
+$("mm-compare-btn").addEventListener("click", () => {
+  const body = $("compare-body");
+  body.innerHTML = "";
+  designs.forEach((d, i) => {
+    const a = assess(d.config, skill);
+    const c = normalizeConfig(d.config);
+    const card = document.createElement("div");
+    card.className = "bg-white rounded-xl border border-outline-variant/50 p-3 space-y-2 flex flex-col";
+    card.innerHTML = `
+      <div class="aspect-square bg-[#F9F7F5] rounded-lg overflow-hidden">${thumbs[i] ? `<img class="w-full h-full object-cover" src="${thumbs[i]}" alt="${esc(d.name)}" />` : ""}</div>
+      <p class="font-label-sm text-xs font-semibold text-on-surface">${esc(d.name)}</p>
+      <dl class="text-[11px] text-on-surface-variant space-y-1 flex-1">
+        <div class="flex justify-between gap-2"><dt>ความยาก</dt><dd class="font-medium text-on-surface">${a.levelLabel} · ${a.d5}/5</dd></div>
+        <div class="flex justify-between gap-2"><dt>ทำได้</dt><dd class="font-medium text-on-surface">${a.feasibility}%</dd></div>
+        <div class="flex justify-between gap-2"><dt>ขนาด</dt><dd class="font-medium text-on-surface">${round1(c.height)} × ${round1(c.belly)} ซม.</dd></div>
+        <div class="flex justify-between gap-2"><dt>ดิน</dt><dd class="font-medium text-on-surface">${esc(CLAYS[c.clay].label)}</dd></div>
+        <div class="flex justify-between gap-2"><dt>วิธี</dt><dd class="font-medium text-on-surface text-right">${esc(a.method)}</dd></div>
+      </dl>
+      <button type="button" class="w-full bg-primary text-on-primary text-xs py-1.5 rounded-md hover:bg-surface-tint transition-colors">ใช้แบบนี้</button>`;
+    card.querySelector("button").addEventListener("click", () => {
+      selectedIndex = i;
+      apply(d.config);
+      drawVariations();
+      closeCompare();
+    });
+    body.appendChild(card);
+  });
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+});
+
+// Say plainly which mode is active — whether the prompt leaves the browser is a privacy-relevant fact.
 aiAvailable().then((enabled) => {
-  if (!aiModeNote) return;
-  aiModeNote.textContent = enabled
+  $("mm-ai-mode-note").textContent = enabled
     ? "ใช้ OpenAI ผ่านเซิร์ฟเวอร์ของเรา — ข้อความที่คุณพิมพ์จะถูกส่งไปประมวลผล"
     : "โหมดออฟไลน์ — ประมวลผลในเบราว์เซอร์ของคุณเอง ไม่ส่งข้อมูลออกไปไหน";
 });
 
-// Seed the panel so it never looks empty. Uses the offline generator on
-// purpose: no network call, no API spend, just from page load.
-renderVariationGrid(
-  offlineSuggestions("warm terracotta mug, matte glaze", 4, 0).map((d) => ({
-    shape: d.config.shape,
-    handle: d.config.handle,
-    surface: d.config.surface,
-    color: d.config.color,
-    modulation: null,
-  })),
-  0
-);
+/* ------------------------------------------------------------------ */
+/* Boot                                                                */
+/* ------------------------------------------------------------------ */
+refreshUI();
+refreshHistoryButtons();
+rebuildPot();
+seedVariations();
+animate();
+
+// Small hook so the page can be inspected / driven from the console and tests.
+window.MudMagicStudio = {
+  getConfig: () => JSON.parse(JSON.stringify(config)),
+  apply: (partial) => apply(partial),
+  getGroup: () => potGroup,
+};
