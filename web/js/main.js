@@ -163,19 +163,59 @@
   /* ---------------------------------------------------------------- */
   function initAccountNav() {
     const link = document.getElementById("mm-account-link");
-    if (!link || !window.MudMagicAPI) return;
+    const mobileLink = document.getElementById("mm-account-link-mobile");
+    if ((!link && !mobileLink) || !window.MudMagicAPI) return;
 
     if (window.MudMagicAPI.isLoggedIn()) {
       const auth = window.MudMagicAPI.getAuth();
       const username = auth?.user?.username || "account";
-      link.textContent = `Logout (${username})`;
-      link.setAttribute("href", "#");
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.MudMagicAPI.logout();
-        window.location.reload();
+      [link, mobileLink].forEach((el) => {
+        if (!el) return;
+        el.textContent = `ออกจากระบบ (${username})`;
+        el.setAttribute("href", "#");
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          window.MudMagicAPI.logout();
+          window.location.reload();
+        });
       });
     }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Community gallery (reads localStorage entries saved from the      */
+  /* AI journey's feedback step, if the visitor opted to publish one)  */
+  /* ---------------------------------------------------------------- */
+  function initCommunityGallery() {
+    const wrap = document.getElementById("user-gallery-wrap");
+    const grid = document.getElementById("user-gallery");
+    if (!wrap || !grid) return;
+
+    let entries = [];
+    try {
+      entries = JSON.parse(localStorage.getItem("mudmagic_gallery") || "[]");
+    } catch (err) {
+      entries = [];
+    }
+    if (!Array.isArray(entries) || entries.length === 0) return;
+
+    const levelLabel = { beginner: "มือใหม่", intermediate: "ปานกลาง", advanced: "มืออาชีพ" };
+    grid.innerHTML = "";
+    entries
+      .slice()
+      .reverse()
+      .forEach((entry) => {
+        const card = document.createElement("figure");
+        card.className = "reveal reveal-visible hover-lift rounded-xl overflow-hidden relative group bg-surface-container-low";
+        card.innerHTML = `
+          <img class="w-full h-full object-cover aspect-square" src="${entry.photo || entry.thumb || ""}" alt="ผลงานจริงที่เผาเสร็จแล้ว จากแบบที่ AI แนะนำ" loading="lazy" />
+          <span class="absolute top-3 left-3 font-label-sm text-[10px] uppercase tracking-wider bg-surface/90 text-on-surface px-2 py-1 rounded-full">${levelLabel[entry.skillLevel] || "Piece"}</span>
+          <figcaption class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-on-background/70 to-transparent text-surface-container-lowest">
+            <span class="font-label-sm text-[10px] uppercase tracking-wider">${"★".repeat(entry.rating || 0)}${"☆".repeat(5 - (entry.rating || 0))}</span>
+          </figcaption>`;
+        grid.appendChild(card);
+      });
+    wrap.classList.remove("hidden");
   }
 
   function boot() {
@@ -184,6 +224,7 @@
     initTilt();
     initSmoothScroll();
     initAccountNav();
+    initCommunityGallery();
   }
 
   if (document.readyState === "loading") {

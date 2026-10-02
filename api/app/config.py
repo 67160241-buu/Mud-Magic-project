@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # OpenAI — optional. Leave blank to disable the AI design endpoint;
+    # the front end then falls back to its offline keyword generator.
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+    openai_timeout_seconds: float = 30.0
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

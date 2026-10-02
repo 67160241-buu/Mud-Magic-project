@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, projects, tasks, users
+from app.routers import ai, auth, projects, tasks, users
 
 app = FastAPI(
     title="Project Management API",
@@ -27,3 +27,4 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(tasks.router)
+app.include_router(ai.router)

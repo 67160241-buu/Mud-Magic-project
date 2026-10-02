@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html class="light" lang="th">
 <head>
 <meta charset="utf-8" />
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport" />
-<title>Studio — Mud Magic</title>
-<meta name="description" content="Shape, glaze and edit your own ceramic mug in a live 3D studio, then generate AI variations." />
+<title>สตูดิโอ — Mud Magic</title>
+<meta name="description" content="ออกแบบ เคลือบสี และแก้ไขมัคเซรามิกของคุณเองในสตูดิโอ 3D แบบสด แล้วให้ AI ช่วยสร้างตัวเลือกเพิ่มเติม" />
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 <link href="css/style.css" rel="stylesheet" />
 <script id="tailwind-config">
@@ -35,8 +35,8 @@
         borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
         spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
         fontFamily: {
-          "body-lg": ["DM Sans"], "display-lg": ["EB Garamond"], "headline-md": ["EB Garamond"],
-          "display-lg-mobile": ["EB Garamond"], "body-md": ["DM Sans"], "headline-lg": ["EB Garamond"], "label-sm": ["DM Sans"],
+          "body-lg": ["Noto Sans Thai", "DM Sans", "sans-serif"], "display-lg": ["Noto Serif Thai", "EB Garamond", "serif"], "headline-md": ["Noto Serif Thai", "EB Garamond", "serif"],
+          "display-lg-mobile": ["Noto Serif Thai", "EB Garamond", "serif"], "body-md": ["Noto Sans Thai", "DM Sans", "sans-serif"], "headline-lg": ["Noto Serif Thai", "EB Garamond", "serif"], "label-sm": ["Noto Sans Thai", "DM Sans", "sans-serif"],
         },
         fontSize: {
           "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
@@ -66,28 +66,28 @@
 <nav class="bg-background/80 backdrop-blur-md fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 md:px-margin-desktop py-4" style="max-width: 100vw;" id="top-nav">
 <a href="index.html" class="font-headline-md text-headline-md text-primary tracking-tight">Mud Magic</a>
 <div class="hidden md:flex gap-8 items-center">
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Showcase</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">Process</a>
-<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">Studio</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Gallery</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">ผลงาน</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">ขั้นตอน</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">สตูดิโอ</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">แกลเลอรี</a>
 </div>
 <div class="flex items-center gap-1 sm:gap-4">
 <button id="mm-save-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden sm:flex">
-<span class="material-symbols-outlined" style="font-size: 20px;">save</span> Save
+<span class="material-symbols-outlined" style="font-size: 20px;">save</span> บันทึก
 </button>
 <button id="mm-preview-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden sm:flex">
-<span class="material-symbols-outlined" style="font-size: 20px;">visibility</span> Preview
+<span class="material-symbols-outlined" style="font-size: 20px;">visibility</span> พรีวิว
 </button>
 <button id="mm-share-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 mr-1 sm:mr-4 hidden sm:flex">
-<span class="material-symbols-outlined" style="font-size: 20px;">share</span> Share
+<span class="material-symbols-outlined" style="font-size: 20px;">share</span> แชร์
 </button>
-<button id="mobile-tools-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="Toggle tools panel">
+<button id="mobile-tools-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="สลับแผงเครื่องมือ">
 <span class="material-symbols-outlined">tune</span>
 </button>
-<button id="mobile-ai-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="Toggle AI panel">
+<button id="mobile-ai-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="สลับแผง AI">
 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
 </button>
-<a href="login.html" id="mm-account-link" class="bg-primary text-on-primary font-label-sm text-label-sm px-4 sm:px-6 py-2 rounded-full hover:bg-surface-tint transition-all duration-300">Get Started</a>
+<a href="login.html" id="mm-account-link" class="bg-primary text-on-primary font-label-sm text-label-sm px-4 sm:px-6 py-2 rounded-full hover:bg-surface-tint transition-all duration-300">เข้าสู่ระบบ</a>
 </div>
 </nav>
 
@@ -97,50 +97,50 @@
 <!-- Left Toolbar -->
 <aside id="tools-panel" class="w-72 bg-surface border-r border-outline-variant/30 flex flex-col z-30 studio-shadow tools-scroll overflow-y-auto fixed inset-y-0 top-[64px] md:top-0 left-0 -translate-x-full md:translate-x-0 md:static transition-transform duration-300">
 <div class="p-6 border-b border-outline-variant/20">
-<h2 class="font-headline-md text-[24px] leading-8 text-on-surface">Tools</h2>
-<p class="font-body-md text-on-surface-variant/70 text-sm mt-1">Shape your vessel</p>
+<h2 class="font-headline-md text-[24px] leading-8 text-on-surface">เครื่องมือ</h2>
+<p class="font-body-md text-on-surface-variant/70 text-sm mt-1">ออกแบบทรงภาชนะของคุณ</p>
 </div>
 <div class="p-6 space-y-8">
 
 <!-- Shape -->
 <div class="space-y-3">
 <label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size: 18px;">category</span> SHAPE
+<span class="material-symbols-outlined" style="font-size: 18px;">category</span> ทรง
 </label>
 <div class="grid grid-cols-2 gap-2">
-<button data-shape="classic" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Classic</button>
-<button data-shape="round" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Round</button>
-<button data-shape="tall" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Tall</button>
-<button data-shape="wide" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Wide</button>
+<button data-shape="classic" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">คลาสสิก</button>
+<button data-shape="round" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">ป่อง</button>
+<button data-shape="tall" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">สูง</button>
+<button data-shape="wide" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">กว้าง</button>
 </div>
 </div>
 
 <!-- Handle -->
 <div class="space-y-3">
 <label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size: 18px;">gesture</span> HANDLE
+<span class="material-symbols-outlined" style="font-size: 18px;">gesture</span> หูจับ
 </label>
 <div class="grid grid-cols-2 gap-2">
-<button data-handle="minimal" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Minimal</button>
-<button data-handle="loop" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">Loop</button>
-<button data-handle="organic" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors col-span-2">Organic</button>
+<button data-handle="minimal" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">เล็ก</button>
+<button data-handle="loop" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors">ห่วง</button>
+<button data-handle="organic" class="border font-body-md text-sm py-2 rounded-lg text-center transition-colors col-span-2">อิสระ</button>
 </div>
 </div>
 
 <!-- Surface -->
 <div class="space-y-3">
 <label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size: 18px;">texture</span> SURFACE
+<span class="material-symbols-outlined" style="font-size: 18px;">texture</span> พื้นผิว
 </label>
 <div class="flex flex-col gap-2">
 <button data-surface="smooth" class="flex items-center justify-between px-4 py-2 border rounded-lg transition-colors font-body-md text-sm">
-Smooth <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
+เงา <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
 </button>
 <button data-surface="matte" class="flex items-center justify-between px-4 py-2 border rounded-lg transition-colors font-body-md text-sm">
-Matte <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
+ด้าน <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
 </button>
 <button data-surface="rough" class="flex items-center justify-between px-4 py-2 border rounded-lg transition-colors font-body-md text-sm">
-Rough <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
+หยาบ <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16px;">radio_button_unchecked</span>
 </button>
 </div>
 </div>
@@ -148,59 +148,91 @@ Rough <span class="material-symbols-outlined mm-radio-icon" style="font-size: 16
 <!-- Glaze -->
 <div class="space-y-3">
 <label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size: 18px;">palette</span> GLAZE
+<span class="material-symbols-outlined" style="font-size: 18px;">palette</span> สีเคลือบ
 </label>
 <div class="grid grid-cols-4 gap-3">
-<button data-color="#A65D45" title="Terracotta" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#A65D45"></button>
-<button data-color="#7C8872" title="Sage" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#7C8872"></button>
-<button data-color="#F3E9DD" title="Cream" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#F3E9DD"></button>
-<button data-color="#3B2A20" title="Espresso" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#3B2A20"></button>
-<button data-color="#E3A896" title="Blush" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#E3A896"></button>
-<button data-color="#2B2B2B" title="Charcoal" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#2B2B2B"></button>
-<button data-color="#4C5A66" title="Denim" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#4C5A66"></button>
-<button data-color="#FBF6EF" title="Ivory" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#FBF6EF"></button>
+<button data-color="#A65D45" title="ดินเผา" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#A65D45"></button>
+<button data-color="#7C8872" title="เซจ" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#7C8872"></button>
+<button data-color="#F3E9DD" title="ครีม" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#F3E9DD"></button>
+<button data-color="#3B2A20" title="เอสเพรสโซ" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#3B2A20"></button>
+<button data-color="#E3A896" title="ชมพู" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#E3A896"></button>
+<button data-color="#2B2B2B" title="ถ่าน" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#2B2B2B"></button>
+<button data-color="#4C5A66" title="เดนิม" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#4C5A66"></button>
+<button data-color="#FBF6EF" title="งาช้าง" class="w-9 h-9 rounded-full ring-1 ring-outline-variant/50 transition-all" style="background:#FBF6EF"></button>
+</div>
+</div>
+
+<!-- Surface pattern (ported wave modulation) -->
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">waves</span> ลวดลายผิว
+</label>
+<div id="mm-pattern-grid" class="grid grid-cols-2 gap-2"></div>
+
+<div id="mm-pattern-controls" class="hidden space-y-4 bg-surface-container-low rounded-lg p-3">
+<div>
+<div class="flex items-center justify-between mb-1">
+<label for="mm-pattern-count" class="text-xs text-on-surface-variant">จำนวนร่อง/วง</label>
+<span id="mm-pattern-count-val" class="text-xs text-outline"></span>
+</div>
+<input id="mm-pattern-count" type="range" min="3" max="24" step="1" value="12" class="w-full accent-primary" />
+</div>
+<div>
+<div class="flex items-center justify-between mb-1">
+<label for="mm-pattern-depth" class="text-xs text-on-surface-variant">ความลึก</label>
+<span id="mm-pattern-depth-val" class="text-xs text-outline"></span>
+</div>
+<input id="mm-pattern-depth" type="range" min="0.005" max="0.09" step="0.005" value="0.035" class="w-full accent-primary" />
+</div>
+<div>
+<div class="flex items-center justify-between mb-1">
+<label for="mm-pattern-twist" class="text-xs text-on-surface-variant">บิดเกลียว</label>
+<span id="mm-pattern-twist-val" class="text-xs text-outline"></span>
+</div>
+<input id="mm-pattern-twist" type="range" min="0" max="1.2" step="0.05" value="0" class="w-full accent-primary" />
+</div>
 </div>
 </div>
 
 <!-- Sculpt -->
 <div class="space-y-3 pt-2 border-t border-outline-variant/20">
 <label class="font-label-sm text-label-sm text-tertiary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size: 18px;">brush</span> SCULPT
+<span class="material-symbols-outlined" style="font-size: 18px;">brush</span> ปั้นอิสระ
 </label>
 <button id="mm-sculpt-toggle" class="w-full flex items-center justify-center gap-2 border border-outline-variant bg-white text-on-surface-variant font-body-md text-sm py-2.5 rounded-lg transition-colors hover:border-primary">
-<span class="material-symbols-outlined" style="font-size: 18px;">fingerprint</span> Freeform Sculpt Mode
+<span class="material-symbols-outlined" style="font-size: 18px;">fingerprint</span> โหมดปั้นอิสระ
 </button>
 
 <p id="mm-sculpt-hint" class="hidden text-xs text-on-surface-variant/70 leading-relaxed">
-Drag on the mug to push/pull the surface. Camera drag is off while sculpting — use the Rotate/Zoom/Reset buttons below the viewport instead.
+ลากบนชิ้นงานเพื่อดัน/ดึงพื้นผิว การหมุนกล้องด้วยเมาส์จะปิดชั่วคราวระหว่างโหมดนี้ ใช้ปุ่มหมุน/ซูม/รีเซ็ตด้านล่างวิวพอร์ตแทน
 </p>
 
 <div id="mm-sculpt-controls" class="hidden space-y-4 bg-surface-container-low rounded-lg p-3">
 <div class="flex gap-2">
 <button data-sculpt-mode="push" class="flex-1 flex items-center justify-center gap-1 border font-body-md text-xs py-2 rounded-lg transition-colors bg-primary text-on-primary">
-<span class="material-symbols-outlined" style="font-size: 16px;">add</span> Push
+<span class="material-symbols-outlined" style="font-size: 16px;">add</span> ดันออก
 </button>
 <button data-sculpt-mode="pull" class="flex-1 flex items-center justify-center gap-1 border font-body-md text-xs py-2 rounded-lg transition-colors bg-white text-on-surface-variant border-outline-variant">
-<span class="material-symbols-outlined" style="font-size: 16px;">remove</span> Pull
+<span class="material-symbols-outlined" style="font-size: 16px;">remove</span> กดเข้า
 </button>
 </div>
 
 <div>
 <div class="flex items-center justify-between mb-1">
-<label for="mm-brush-size" class="text-xs text-on-surface-variant">Brush Size</label>
+<label for="mm-brush-size" class="text-xs text-on-surface-variant">ขนาดหัวแปรง</label>
 </div>
 <input id="mm-brush-size" type="range" min="0.06" max="0.4" step="0.01" value="0.18" class="w-full accent-primary" />
 </div>
 
 <div>
 <div class="flex items-center justify-between mb-1">
-<label for="mm-brush-strength" class="text-xs text-on-surface-variant">Strength</label>
+<label for="mm-brush-strength" class="text-xs text-on-surface-variant">แรงกด</label>
 </div>
 <input id="mm-brush-strength" type="range" min="0.05" max="1" step="0.05" value="0.35" class="w-full accent-primary" />
 </div>
 
 <button id="mm-sculpt-reset" class="w-full flex items-center justify-center gap-2 border border-outline-variant bg-white text-on-surface-variant font-body-md text-xs py-2 rounded-lg hover:border-primary hover:text-primary transition-colors">
-<span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span> Reset Sculpt
+<span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span> ล้างการปั้นอิสระ
 </button>
 </div>
 </div>
@@ -220,22 +252,22 @@ Drag on the mug to push/pull the surface. Camera drag is off while sculpting —
 <div class="mm-hide-in-preview absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md border border-outline-variant/30 rounded-full px-4 md:px-6 py-2.5 md:py-3 flex items-center gap-4 md:gap-6 shadow-sm z-10">
 <button id="mm-rotate-btn" class="text-on-surface-variant hover:text-primary transition-colors flex flex-col items-center gap-1 group">
 <span class="material-symbols-outlined group-hover:-rotate-45 transition-transform duration-300">360</span>
-<span class="font-label-sm text-[10px] uppercase tracking-wider">Rotate</span>
+<span class="font-label-sm text-[10px] uppercase tracking-wider">หมุน</span>
 </button>
 <div class="w-px h-6 bg-outline-variant/30"></div>
 <button id="mm-zoom-btn" class="text-on-surface-variant hover:text-primary transition-colors flex flex-col items-center gap-1 group">
 <span class="material-symbols-outlined group-hover:scale-110 transition-transform duration-300">zoom_in</span>
-<span class="font-label-sm text-[10px] uppercase tracking-wider">Zoom</span>
+<span class="font-label-sm text-[10px] uppercase tracking-wider">ซูม</span>
 </button>
 <div class="w-px h-6 bg-outline-variant/30"></div>
 <button id="mm-reset-btn" class="text-on-surface-variant hover:text-primary transition-colors flex flex-col items-center gap-1">
 <span class="material-symbols-outlined">restart_alt</span>
-<span class="font-label-sm text-[10px] uppercase tracking-wider">Reset</span>
+<span class="font-label-sm text-[10px] uppercase tracking-wider">รีเซ็ต</span>
 </button>
 </div>
 
 <button id="mm-exit-preview" class="hidden absolute top-4 right-4 z-20 bg-white/90 backdrop-blur border border-outline-variant/40 rounded-full px-4 py-2 items-center gap-2 text-sm text-on-surface shadow-sm">
-<span class="material-symbols-outlined" style="font-size:18px;">close</span> Exit preview
+<span class="material-symbols-outlined" style="font-size:18px;">close</span> ออกจากโหมดพรีวิว
 </button>
 </section>
 
@@ -245,26 +277,26 @@ Drag on the mug to push/pull the surface. Camera drag is off while sculpting —
 <div>
 <h2 class="font-headline-md text-[24px] leading-8 text-on-surface flex items-center gap-2">
 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-AI Studio
+สตูดิโอ AI
 </h2>
-<p class="font-body-md text-on-surface-variant/70 text-sm mt-1">Generate variations from a prompt</p>
+<p class="font-body-md text-on-surface-variant/70 text-sm mt-1">สร้างตัวเลือกจากคำอธิบายของคุณ</p>
 </div>
 <button id="mobile-ai-close" class="md:hidden text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
 </div>
 <div class="p-6 flex flex-col h-full overflow-y-auto tools-scroll">
 <div class="space-y-4 mb-8">
-<label class="font-label-sm text-label-sm text-tertiary">Describe your idea</label>
-<textarea id="mm-prompt" class="w-full bg-white border border-outline-variant rounded-xl p-4 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm" placeholder="e.g., Tall sage mug with an organic handle and a rough, unglazed texture..." rows="3"></textarea>
+<label class="font-label-sm text-label-sm text-tertiary">อธิบายไอเดียของคุณ</label>
+<textarea id="mm-prompt" class="w-full bg-white border border-outline-variant rounded-xl p-4 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm" placeholder="เช่น แก้วทรงสูงสีเซจ หูจับทรงอิสระ พื้นผิวหยาบไม่เคลือบมัน..." rows="3"></textarea>
 <button id="mm-generate-btn" data-magnet data-magnet-strength="6" class="w-full bg-primary text-on-primary font-body-md py-3 rounded-lg hover:bg-surface-tint transition-colors flex items-center justify-center gap-2 shadow-sm disabled:cursor-wait">
-Generate Design
+สร้างแบบ
 <span class="material-symbols-outlined" style="font-size: 20px;">arrow_forward</span>
 </button>
-<p class="font-label-sm text-label-sm text-outline">Client-side generator — reads your prompt for shape, handle, surface &amp; glaze cues, no server round-trip.</p>
+<p id="mm-ai-mode-note" class="font-label-sm text-label-sm text-outline">กำลังตรวจสอบโหมด AI...</p>
 </div>
 <div class="mt-4">
 <div class="flex items-center justify-between mb-4">
-<h3 class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider">Variations</h3>
-<span class="font-body-md text-xs text-on-surface-variant bg-surface-variant px-2 py-1 rounded">4 Results</span>
+<h3 class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider">ตัวเลือกที่ได้</h3>
+<span class="font-body-md text-xs text-on-surface-variant bg-surface-variant px-2 py-1 rounded">4 แบบ</span>
 </div>
 <div id="mm-variation-grid" class="grid grid-cols-2 gap-4"></div>
 </div>

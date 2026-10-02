@@ -14,8 +14,10 @@ import {
   HANDLES,
   SURFACES,
   DEFAULT_CONFIG,
+  PATTERNS,
 } from "./mug-model.js";
 import { Sculptor } from "./sculpt.js";
+import { suggestDesigns, aiAvailable, offlineSuggestions } from "./ai-design.js";
 
 /* ------------------------------------------------------------------ */
 /* State                                                               */
@@ -237,6 +239,108 @@ document.querySelectorAll("[data-color]").forEach((btn) =>
 refreshToolbarState();
 
 /* ------------------------------------------------------------------ */
+/* Surface pattern: scallops / ripples / ruffles (wave modulation)      */
+/* ------------------------------------------------------------------ */
+const patternGrid = document.getElementById("mm-pattern-grid");
+const patternControls = document.getElementById("mm-pattern-controls");
+const patternCount = document.getElementById("mm-pattern-count");
+const patternDepth = document.getElementById("mm-pattern-depth");
+const patternTwist = document.getElementById("mm-pattern-twist");
+
+let activePatternId = "none";
+
+/** Which slider drives the count depends on whether the preset is a
+ * circumference pattern (scallops) or a height pattern (ripples). */
+function patternIsRipple(mod) {
+  return !!mod && mod.ripples > 0 && !(mod.scallops > 0);
+}
+
+function currentPatternMod() {
+  const preset = PATTERNS.find((p) => p.id === activePatternId);
+  if (!preset || !preset.mod) return null;
+  const mod = { ...preset.mod };
+  const count = Number(patternCount.value);
+  const depth = Number(patternDepth.value);
+  const twist = Number(patternTwist.value);
+
+  if (patternIsRipple(mod)) {
+    mod.ripples = count;
+    mod.rippleDepth = depth * 0.4; // ripples read much stronger than scallops
+  } else {
+    mod.scallops = count;
+    mod.scallopDepth = depth;
+    if (mod.ripples > 0) mod.rippleDepth = depth * 0.4;
+  }
+  if (twist > 0) {
+    mod.ruffles = mod.ruffles || 1;
+    mod.ruffleDepth = twist;
+  } else if (!preset.mod.ruffles) {
+    mod.ruffles = 0;
+  }
+  return mod;
+}
+
+function syncPatternSliderLabels() {
+  document.getElementById("mm-pattern-count-val").textContent = patternCount.value;
+  document.getElementById("mm-pattern-depth-val").textContent = Number(patternDepth.value).toFixed(3);
+  document.getElementById("mm-pattern-twist-val").textContent = Number(patternTwist.value).toFixed(2);
+}
+
+function refreshPatternButtons() {
+  patternGrid.querySelectorAll("[data-pattern]").forEach((btn) => {
+    const active = btn.dataset.pattern === activePatternId;
+    btn.classList.toggle("border-primary", active);
+    btn.classList.toggle("text-primary", active);
+    btn.classList.toggle("bg-surface-container-low", active);
+    btn.classList.toggle("border-outline-variant", !active);
+    btn.classList.toggle("text-on-surface-variant", !active);
+  });
+  patternControls.classList.toggle("hidden", activePatternId === "none");
+}
+
+function applyPattern() {
+  syncPatternSliderLabels();
+  refreshPatternButtons();
+  applyConfig({ modulation: currentPatternMod() });
+}
+
+if (patternGrid) {
+  PATTERNS.forEach((p) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.pattern = p.id;
+    btn.className = "border font-body-md text-sm py-2 rounded-lg text-center transition-colors";
+    btn.textContent = p.label;
+    btn.addEventListener("click", () => {
+      activePatternId = p.id;
+      // Seed the sliders from the preset so the controls match what you see.
+      if (p.mod) {
+        patternCount.value = patternIsRipple(p.mod) ? p.mod.ripples : p.mod.scallops;
+        patternDepth.value = patternIsRipple(p.mod) ? (p.mod.rippleDepth / 0.4).toFixed(3) : p.mod.scallopDepth;
+        patternTwist.value = p.mod.ruffles > 0 ? p.mod.ruffleDepth : 0;
+      }
+      applyPattern();
+    });
+    patternGrid.appendChild(btn);
+  });
+
+  [patternCount, patternDepth, patternTwist].forEach((el) =>
+    el.addEventListener("input", () => {
+      if (activePatternId === "none") return;
+      applyPattern();
+    })
+  );
+
+  // Restore a saved/shared pattern selection if one round-trips in config.
+  if (config.modulation) {
+    const match = PATTERNS.find((p) => p.mod && p.id !== "none" && JSON.stringify(p.mod) === JSON.stringify(config.modulation));
+    activePatternId = match ? match.id : "none";
+  }
+  syncPatternSliderLabels();
+  refreshPatternButtons();
+}
+
+/* ------------------------------------------------------------------ */
 /* Sculpt tool: toggle, brush size/strength, push/pull, reset           */
 /* ------------------------------------------------------------------ */
 const sculptToggleBtn = document.getElementById("mm-sculpt-toggle");
@@ -291,7 +395,7 @@ if (sculptResetBtn) {
     // Rebuilding from the current preset config discards all sculpt
     // displacement and restores the clean parametric surface.
     rebuildMug();
-    window.MudMagic?.showToast("Sculpt reset to base shape", { icon: "restart_alt" });
+    window.MudMagic?.showToast("ล้างการปั้นอิสระ กลับเป็นทรงตั้งต้นแล้ว", { icon: "restart_alt" });
   });
 }
 /* ------------------------------------------------------------------ */
@@ -355,7 +459,7 @@ if (saveBtn) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     } catch (err) {
-      window.MudMagic?.showToast("Couldn't save — storage unavailable", { icon: "error" });
+      window.MudMagic?.showToast("บันทึกไม่ได้ — พื้นที่จัดเก็บใช้งานไม่ได้", { icon: "error" });
       return;
     }
 
@@ -364,15 +468,15 @@ if (saveBtn) {
       saveBtn.disabled = true;
       try {
         await window.MudMagicAPI.saveDesignAsProject(config);
-        window.MudMagic?.showToast("Design saved to your account", { icon: "cloud_done" });
+        window.MudMagic?.showToast("บันทึกแบบเข้าบัญชีของคุณแล้ว", { icon: "cloud_done" });
       } catch (err) {
-        window.MudMagic?.showToast("Saved locally — couldn't reach the account server", { icon: "save" });
+        window.MudMagic?.showToast("บันทึกลงเครื่องแล้ว — เชื่อมต่อเซิร์ฟเวอร์บัญชีไม่ได้", { icon: "save" });
       } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = originalLabel;
       }
     } else {
-      window.MudMagic?.showToast("Saved to this browser — log in to save to your account", { icon: "save" });
+      window.MudMagic?.showToast("บันทึกลงเบราว์เซอร์นี้แล้ว — เข้าสู่ระบบเพื่อบันทึกเข้าบัญชี", { icon: "save" });
     }
   });
 }
@@ -395,9 +499,9 @@ if (shareBtn) {
     window.history.replaceState(null, "", `?${params.toString()}`);
     try {
       await navigator.clipboard.writeText(url);
-      window.MudMagic?.showToast("Share link copied to clipboard", { icon: "link" });
+      window.MudMagic?.showToast("คัดลอกลิงก์แชร์แล้ว", { icon: "link" });
     } catch (err) {
-      window.MudMagic?.showToast("Link ready in your address bar", { icon: "link" });
+      window.MudMagic?.showToast("ลิงก์พร้อมแล้วในแถบที่อยู่เบราว์เซอร์", { icon: "link" });
     }
   });
 }
@@ -519,11 +623,12 @@ let currentVariants = [];
 let selectedVariantIndex = 0;
 let genNonce = 0;
 
-function renderVariationGrid(variants, selectedIndex = 0) {
+function renderVariationGrid(variants, selectedIndex = 0, meta = null) {
   currentVariants = variants;
   selectedVariantIndex = selectedIndex;
   variationGrid.innerHTML = "";
   variants.forEach((variant, i) => {
+    const info = meta && meta[i];
     const dataUrl = renderThumbnail(variant);
     const tile = document.createElement("div");
     tile.className =
@@ -534,8 +639,10 @@ function renderVariationGrid(variants, selectedIndex = 0) {
     tile.innerHTML = `
       ${i === selectedIndex ? '<div class="absolute top-2 right-2 bg-primary text-white text-[10px] px-2 py-1 rounded-full font-label-sm z-10">Selected</div>' : ""}
       <div class="aspect-square bg-[#F9F7F5] rounded-lg overflow-hidden flex items-center justify-center relative">
-        <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="${dataUrl}" alt="Mug variation: ${variant.shape}, ${variant.handle} handle, ${variant.surface} surface" />
-      </div>`;
+        <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="${dataUrl}" alt="แบบมัค: ทรง ${variant.shape} หูจับ ${variant.handle} ผิว ${variant.surface}" />
+      </div>
+      ${info ? `<p class="mt-2 text-xs font-medium text-on-background leading-tight">${info.name}</p>
+      <p class="text-[11px] text-on-surface-variant leading-snug line-clamp-2">${info.rationale || ""}</p>` : ""}`;
     tile.addEventListener("click", () => {
       applyConfig(variant);
       renderVariationGrid(currentVariants, i);
@@ -545,23 +652,56 @@ function renderVariationGrid(variants, selectedIndex = 0) {
 }
 
 if (generateBtn) {
-  generateBtn.addEventListener("click", () => {
+  generateBtn.addEventListener("click", async () => {
     const prompt = (promptInput?.value || "").trim() || "warm ceramic mug with an organic glaze";
     genNonce += 1;
     generateBtn.disabled = true;
     generateBtn.classList.add("opacity-70");
-    // Small delay purely for perceived-work feedback; the generation
-    // itself is synchronous and instant.
-    window.setTimeout(() => {
-      const variants = generateVariations(prompt, genNonce);
-      renderVariationGrid(variants, 0);
-      applyConfig(variants[0]);
-      generateBtn.disabled = false;
-      generateBtn.classList.remove("opacity-70");
-      window.MudMagic?.showToast("Generated 4 new variations", { icon: "auto_awesome" });
-    }, 380);
+    const originalHTML = generateBtn.innerHTML;
+    generateBtn.textContent = "กำลังคิดแบบ...";
+
+    // suggestDesigns never throws: if OpenAI isn't configured, is down, or
+    // rate-limits us, it returns offline keyword-generated designs plus a
+    // notice explaining why. Either way we get renderable configs.
+    const { designs, source, notice } = await suggestDesigns(prompt, { count: 4, seed: genNonce });
+    const variants = designs.map((d) => d.renderConfig);
+
+    renderVariationGrid(variants, 0, designs);
+    applyConfig(variants[0]);
+    generateBtn.disabled = false;
+    generateBtn.classList.remove("opacity-70");
+    generateBtn.innerHTML = originalHTML;
+
+    if (notice) {
+      window.MudMagic?.showToast(notice, { icon: "info" });
+    } else {
+      window.MudMagic?.showToast(
+        source === "openai" ? "AI สร้างแบบใหม่ 4 แบบแล้ว" : "สร้างตัวเลือกใหม่ 4 แบบแล้ว",
+        { icon: "auto_awesome" }
+      );
+    }
   });
 }
 
-// Seed the panel with an initial set of variations so it never looks empty.
-renderVariationGrid(generateVariations("warm terracotta mug, matte glaze", 0), 0);
+// Tell the user plainly which mode is active — whether their prompt text
+// leaves the browser is a privacy-relevant fact, not a detail to bury.
+const aiModeNote = document.getElementById("mm-ai-mode-note");
+aiAvailable().then((enabled) => {
+  if (!aiModeNote) return;
+  aiModeNote.textContent = enabled
+    ? "ใช้ OpenAI ผ่านเซิร์ฟเวอร์ของเรา — ข้อความที่คุณพิมพ์จะถูกส่งไปประมวลผล"
+    : "โหมดออฟไลน์ — ประมวลผลในเบราว์เซอร์ของคุณเอง ไม่ส่งข้อมูลออกไปไหน";
+});
+
+// Seed the panel so it never looks empty. Uses the offline generator on
+// purpose: no network call, no API spend, just from page load.
+renderVariationGrid(
+  offlineSuggestions("warm terracotta mug, matte glaze", 4, 0).map((d) => ({
+    shape: d.config.shape,
+    handle: d.config.handle,
+    surface: d.config.surface,
+    color: d.config.color,
+    modulation: null,
+  })),
+  0
+);

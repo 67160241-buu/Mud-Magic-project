@@ -6,6 +6,7 @@
 // "3D model" is genuinely editable, not a static asset.
 
 import * as THREE from "three";
+import { DEFAULT_MODULATION, hasModulation, modulateRadius } from "./wave.js";
 
 export const GLAZES = [
   { id: "terracotta", label: "Terracotta", hex: "#A65D45" },
@@ -27,7 +28,47 @@ export const DEFAULT_CONFIG = {
   handle: "loop",
   surface: "matte",
   color: "#A65D45",
+  // Surface modulation (scallops / ripples / ruffles). Off by default, so
+  // an unset config produces exactly the same mug as before this existed.
+  modulation: null,
 };
+
+export { DEFAULT_MODULATION };
+
+/** Named modulation presets exposed as one-click "surface pattern" options. */
+export const PATTERNS = [
+  { id: "none", label: "เรียบ", mod: null },
+  {
+    id: "flutes",
+    label: "ร่องลึก",
+    mod: { ...DEFAULT_MODULATION, scallops: 12, scallopMotif: "flutes", scallopDepth: 0.035 },
+  },
+  {
+    id: "reeds",
+    label: "สันนูน",
+    mod: { ...DEFAULT_MODULATION, scallops: 14, scallopMotif: "reeds", scallopDepth: 0.03 },
+  },
+  {
+    id: "facets",
+    label: "เหลี่ยม",
+    mod: { ...DEFAULT_MODULATION, scallops: 8, scallopWaveform: "triangle", scallopDepth: 0.04 },
+  },
+  {
+    id: "rings",
+    label: "วงรอบ",
+    mod: { ...DEFAULT_MODULATION, ripples: 14, rippleWaveform: "sine", rippleDepth: 0.012 },
+  },
+  {
+    id: "twist",
+    label: "บิดเกลียว",
+    mod: { ...DEFAULT_MODULATION, scallops: 10, scallopDepth: 0.035, ruffles: 1, ruffleDepth: 0.55 },
+  },
+  {
+    id: "wobble",
+    label: "ขอบหยัก",
+    mod: { ...DEFAULT_MODULATION, scallops: 6, scallopDepth: 0.05, ripples: 5, rippleDepth: 0.015 },
+  },
+];
 
 /**
  * Returns the lathe revolution profile (outer wall up, rim, inner wall
@@ -69,10 +110,76 @@ function profileForShape(shape) {
   return pts.map(([r, y]) => new THREE.Vector2(r, y));
 }
 
-function buildBodyGeometry(shape) {
+function buildBodyGeometry(shape, mod) {
   const profile = densifyProfile(profileForShape(shape), 56);
-  const geo = new THREE.LatheGeometry(profile, 64);
+  if (!hasModulation(mod)) {
+    // Unmodulated: plain lathe. Cheaper, and keeps the exact geometry the
+    // rest of the app was built and tested against.
+    const geo = new THREE.LatheGeometry(profile, 64);
+    geo.computeVertexNormals();
+    return geo;
+  }
+  return buildRevolvedGeometry(profile, 64, mod);
+}
+
+/**
+ * Same revolve as THREE.LatheGeometry (identical vertex order, indices and
+ * UVs) but the radius of every vertex can be modulated per ring and per
+ * side. Lathe can't do this — it spins one profile, so every horizontal
+ * slice is a perfect circle. Scallops/flutes need radius to vary *around*
+ * the pot, which means generating the surface ourselves.
+ */
+function buildRevolvedGeometry(points, segments, mod) {
+  const geo = new THREE.BufferGeometry();
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  const rows = points.length;
+
+  // Height range of the profile, so "ring" is a normalised 0..1 height
+  // rather than a raw index — keeps ripple frequency consistent across
+  // shapes with different heights (tall vs wide).
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const p of points) {
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  const spanY = maxY - minY || 1;
+
+  for (let i = 0; i <= segments; i++) {
+    const side = i / segments; // 0..1 around the pot
+    const phi = side * Math.PI * 2;
+    const sin = Math.sin(phi);
+    const cos = Math.cos(phi);
+
+    for (let j = 0; j < rows; j++) {
+      const p = points[j];
+      const ring = (p.y - minY) / spanY;
+      const radius = modulateRadius(p.x, ring, side, mod);
+
+      positions.push(radius * sin, p.y, radius * cos);
+      uvs.push(side, j / (rows - 1));
+    }
+  }
+
+  for (let i = 0; i < segments; i++) {
+    for (let j = 0; j < rows - 1; j++) {
+      const base = i * rows + j;
+      const a = base;
+      const b = base + rows;
+      const c = base + rows + 1;
+      const d = base + 1;
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geo.setIndex(indices);
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geo.computeVertexNormals();
+  geo.computeBoundingSphere();
   return geo;
 }
 
@@ -202,7 +309,7 @@ export function buildMugGroup(config) {
   const group = new THREE.Group();
   group.name = "mug";
 
-  const bodyGeo = buildBodyGeometry(cfg.shape);
+  const bodyGeo = buildBodyGeometry(cfg.shape, cfg.modulation);
   const material = materialForSurface(cfg.surface, cfg.color);
   const body = new THREE.Mesh(bodyGeo, material);
   body.castShadow = true;
@@ -230,4 +337,123 @@ export function disposeMugGroup(group) {
       obj.material.dispose();
     }
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Guided-journey helpers: skill levels, difficulty scoring, naming,   */
+/* and step-by-step guides. Used by create.html (the AI design         */
+/* journey); the free-form Studio doesn't depend on any of this.       */
+/* ------------------------------------------------------------------ */
+const SHAPE_DIFFICULTY = { classic: 2, wide: 2, round: 5, tall: 7 };
+const HANDLE_DIFFICULTY = { minimal: 2, loop: 4, organic: 8 };
+const SURFACE_DIFFICULTY = { rough: 2, matte: 4, smooth: 7 };
+
+const SHAPE_NOTES = {
+  classic: "ทรงตรงไปตรงมา ควบคุมบนแป้นหมุนง่าย",
+  wide: "ทรงเตี้ยกว้าง เซนเตอร์ดินง่ายกว่าทรงสูง",
+  round: "ทรงป่องต้องคุมผนังให้บางสม่ำเสมอ ต้องฝึกมือมาบ้าง",
+  tall: "ทรงสูงชะลูด ต้องคุมแรงเหวี่ยงและผนังบางให้มั่นคง",
+};
+const HANDLE_NOTES = {
+  minimal: "หูจับเล็กเรียบง่าย ต่อไว เสี่ยงหลุดน้อย",
+  loop: "หูจับทรงห่วงคลาสสิก ต้องฝึกต่อหูให้สมมาตร",
+  organic: "หูจับทรงอิสระ ต้องมีทักษะปั้นมือระดับสูง",
+};
+const SURFACE_NOTES = {
+  rough: "พื้นผิวหยาบ ให้อภัยรอยมือ เหมาะมือใหม่",
+  matte: "พื้นผิวด้าน ต้องเกลี่ยผิวให้เนียนพอสมควร",
+  smooth: "พื้นผิวเงามัน ต้องขัดและเคลือบให้เนียนไร้ตำหนิ",
+};
+
+export const SKILL_LEVELS = [
+  { id: "beginner", label: "Beginner", labelTh: "มือใหม่", maxScore: 10, dot: "#7C8872" },
+  { id: "intermediate", label: "Intermediate", labelTh: "ปานกลาง", maxScore: 16, dot: "#C18A52" },
+  { id: "advanced", label: "Advanced", labelTh: "มืออาชีพ", maxScore: 22, dot: "#A65D45" },
+];
+
+export function computeDifficulty(config) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  const score = SHAPE_DIFFICULTY[cfg.shape] + HANDLE_DIFFICULTY[cfg.handle] + SURFACE_DIFFICULTY[cfg.surface];
+  const tier = SKILL_LEVELS.find((s) => score <= s.maxScore) || SKILL_LEVELS[SKILL_LEVELS.length - 1];
+  return {
+    score,
+    level: tier.id,
+    levelLabel: tier.label,
+    levelLabelTh: tier.labelTh,
+    dot: tier.dot,
+    reasons: [SHAPE_NOTES[cfg.shape], HANDLE_NOTES[cfg.handle], SURFACE_NOTES[cfg.surface]],
+  };
+}
+
+export function skillLevelRank(levelId) {
+  return SKILL_LEVELS.findIndex((s) => s.id === levelId);
+}
+export function fitsSkillLevel(config, skillLevelId) {
+  return skillLevelRank(computeDifficulty(config).level) <= skillLevelRank(skillLevelId);
+}
+
+/** Difficulty presented the way the design mockups show it: "2.5/5".
+ * Derived from the same underlying score (range 6..22), rounded to halves. */
+export function difficultyOutOf5(score) {
+  const scaled = ((score - 6) / (22 - 6)) * 4 + 1; // 6 -> 1, 22 -> 5
+  return Math.round(scaled * 2) / 2;
+}
+
+/** Feasibility % for a config at a chosen skill level: how comfortably the
+ * design sits within that tier. Honest heuristic from the same score —
+ * designs near the tier's ceiling get lower feasibility. */
+export function feasibilityFor(config, skillLevelId) {
+  const { score } = computeDifficulty(config);
+  const tier = SKILL_LEVELS.find((s) => s.id === skillLevelId) || SKILL_LEVELS[2];
+  const headroom = tier.maxScore - score; // can be negative if design exceeds tier
+  return Math.max(40, Math.min(98, Math.round(90 + headroom * 2)));
+}
+
+const NAME_SHAPE = { classic: "Classic Cylinder", round: "Organic Form", tall: "Tall Vessel", wide: "Earth Bowl" };
+const NAME_SURFACE = { smooth: "Glazed", matte: "Matte", rough: "Raw" };
+export function designName(config) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  return `The ${NAME_SURFACE[cfg.surface]} ${NAME_SHAPE[cfg.shape]}`;
+}
+export function styleChip(config) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  return { smooth: "Glazed", matte: "Matte", rough: "Raw Exterior" }[cfg.surface];
+}
+export function techniqueFor(config) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  if (cfg.handle === "organic") return "Hand Building";
+  if (cfg.shape === "wide") return "Pinch Pot";
+  return "Wheel Thrown";
+}
+export function shapeWord(config) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  return { classic: "Symmetrical", round: "Curved", tall: "Elongated", wide: "Wide Base" }[cfg.shape];
+}
+
+const SHAPE_STEP = {
+  classic: "ขึ้นรูปทรงกระบอกตรงกลางแป้นหมุน คุมผนังให้หนาสม่ำเสมอ",
+  wide: "เปิดปากดินให้กว้างแต่เตี้ย เกลี่ยฐานให้กว้างมั่นคงก่อนดึงผนังขึ้น",
+  round: "ดึงผนังขึ้นแล้วดันโป่งตรงกลางเบาๆ ระวังผนังบางเกินจนยุบ",
+  tall: "ดึงดินขึ้นทีละน้อยหลายรอบ คุมแรงเหวี่ยงไม่ให้เอียงระหว่างทาง",
+};
+const HANDLE_STEP = {
+  minimal: "ปั้นหูจับชิ้นเล็กแล้วแปะติดข้างตัวแก้ว เกลี่ยรอยต่อให้เนียน",
+  loop: "รีดดินเป็นเส้นโค้งรูปตัว C แล้วต่อปลายทั้งสองด้านให้สมมาตร",
+  organic: "ปั้นหูจับทรงอิสระด้วยมือ ปรับสมดุลให้จับถนัดก่อนติด",
+};
+const SURFACE_STEP = {
+  rough: "ปล่อยผิวแบบดิบหลังแต่งรูปทรง ไม่ต้องขัดมาก เคลือบแบบด้านหนา",
+  matte: "ขัดผิวด้วยฟองน้ำให้เรียบพอประมาณ แล้วเคลือบน้ำยาสูตรด้าน",
+  smooth: "ขัดผิวหลายรอบให้เนียนไร้รอย แล้วเคลือบมันให้ทั่วอย่างสม่ำเสมอ",
+};
+export function buildStepGuide(config) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  return [
+    "นวดดินไล่ฟองอากาศจนเนื้อเนียน แล้ววางกึ่งกลางแป้นหมุนให้ดิ่ง",
+    SHAPE_STEP[cfg.shape],
+    HANDLE_STEP[cfg.handle],
+    "ตัดออกจากแป้น ผึ่งให้หมาด แต่งขอบและฐานด้วยเครื่องมือแต่งผิว",
+    SURFACE_STEP[cfg.surface],
+    "ผึ่งให้แห้งสนิท เผาดิบ (บิสกิต) แล้วเคลือบตามสี/ผิวที่เลือก ก่อนเผาเคลือบรอบสุดท้าย",
+  ];
 }
