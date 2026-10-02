@@ -1,12 +1,12 @@
-# 67160241 น.ส.อรปรียา คล้ายสุวรรณ
-# 67160368 น.ส.วชิราภรณ์ แย้มวิเศษ
+## 67160241 น.ส.อรปรียา คล้ายสุวรรณ
+## 67160368 น.ส.วชิราภรณ์ แย้มวิเศษ
 
 # ตอนนี้ที่ทำได้ทั้งหมด 65%
 
-Microservices architecture
+## Microservices architecture
 <img width="1536" height="1024" alt="Mud Magic Microservices Architecture" src="https://github.com/user-attachments/assets/e11bac3b-021d-46d5-9bac-4b15ff338908" />
 
-Technology stack diagram
+## Technology stack diagram
 <img width="1671" height="941" alt="Mud Magic Technology Stack Infographic" src="https://github.com/user-attachments/assets/2e77b682-c4d8-41f7-b24b-3704ae9f75bb" />
 
 
