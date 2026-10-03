@@ -46,6 +46,11 @@ function safeSet(key, value) {
   }
 }
 
+// ?embed=1 → running inside the create-page wizard: no localStorage autosave
+// (it would overwrite the user's own saved Studio design); every change is
+// posted to the parent window instead.
+const EMBED = new URLSearchParams(window.location.search).get("embed") === "1" && window.parent !== window;
+
 function loadInitialConfig() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("d")) {
@@ -293,6 +298,12 @@ function addSlider(containerId, spec) {
 let saveTimer = null;
 function persistSoon() {
   window.clearTimeout(saveTimer);
+  if (EMBED) {
+    saveTimer = window.setTimeout(() => {
+      window.parent.postMessage({ type: "mudmagic-studio-config", config: JSON.parse(JSON.stringify(config)) }, window.location.origin);
+    }, 120);
+    return;
+  }
   saveTimer = window.setTimeout(() => {
     const ok = safeSet(STORAGE_KEY, JSON.stringify(config));
     const label = $("mm-save-status");
@@ -526,11 +537,11 @@ addSlider("pattern-controls", {
 
 /* ---- geometry sliders ---- */
 addSlider("geo-sliders", {
-  id: "height", label: "ความสูง", min: 5, max: 45, step: 0.5, fmt: (v) => `${v} ซม.`,
+  id: "height", label: "ความสูง", min: 5, max: 45, step: 0.5, fmt: (v) => `${Math.round(v * 10) / 10} ซม.`,
   range: () => VESSELS[config.vessel].height, get: () => config.height, set: (v) => apply({ height: v }, { commit: false }),
 });
 addSlider("geo-sliders", {
-  id: "belly", label: "เส้นผ่านศูนย์กลางตัว", min: 6, max: 36, step: 0.5, fmt: (v) => `${v} ซม.`,
+  id: "belly", label: "เส้นผ่านศูนย์กลางตัว", min: 6, max: 36, step: 0.5, fmt: (v) => `${Math.round(v * 10) / 10} ซม.`,
   range: () => VESSELS[config.vessel].belly, get: () => config.belly, set: (v) => apply({ belly: v }, { commit: false }),
 });
 addSlider("geo-sliders", {
@@ -1035,7 +1046,28 @@ seedVariations();
 animate();
 
 // Small hook so the page can be inspected / driven from the console and tests.
+/** PNG of the viewport as it is now (brush ring hidden) — used by the create page. */
+function snapshotPng() {
+  const was = brushCursor.visible;
+  brushCursor.visible = false;
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL("image/png");
+  brushCursor.visible = was;
+  return url;
+}
+if (EMBED) {
+  document.documentElement.classList.add("mm-embed");
+  window.addEventListener("message", (e) => {
+    if (e.origin !== window.location.origin || e.source !== window.parent) return;
+    if (e.data?.type === "mudmagic-snapshot-request") {
+      window.parent.postMessage({ type: "mudmagic-snapshot", id: e.data.id, png: snapshotPng() }, window.location.origin);
+    }
+  });
+  window.parent.postMessage({ type: "mudmagic-studio-config", config: JSON.parse(JSON.stringify(config)), ready: true }, window.location.origin);
+}
+
 window.MudMagicStudio = {
+  snapshot: snapshotPng,
   getConfig: () => JSON.parse(JSON.stringify(config)),
   apply: (partial) => apply(partial),
   getGroup: () => potGroup,

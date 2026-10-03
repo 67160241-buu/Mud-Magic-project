@@ -8,6 +8,14 @@
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ?embed=1 — Studio inside the create wizard: keep only the editor */
+html.mm-embed #top-nav > a, html.mm-embed #top-nav > div.xl\:flex, html.mm-embed #mm-save-btn, html.mm-embed #mm-preview-btn, html.mm-embed #mm-share-btn, html.mm-embed #mm-guide-btn, html.mm-embed #mm-account-link, html.mm-embed #mobile-ai-toggle, html.mm-embed #ai-panel, html.mm-embed #mm-exit-preview { display: none !important; }
+html.mm-embed #top-nav { position: static; padding-top: .35rem; padding-bottom: .35rem; justify-content: flex-end; }
+html.mm-embed body { height: 100vh; }
+html.mm-embed main { margin-top: 0 !important; }
+html.mm-embed #tools-panel { top: 48px; }
+</style>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 <link href="css/style.css" rel="stylesheet" />
 <script id="tailwind-config">
@@ -59,6 +67,7 @@
   }
 }
 </script>
+<script>if(new URLSearchParams(location.search).get('embed')==='1'&&window.parent!==window)document.documentElement.classList.add('mm-embed');</script>
 </head>
 <body class="bg-background text-on-background font-body-md overflow-hidden h-screen flex flex-col">
 
@@ -420,6 +429,6 @@
 </script>
 <script src="js/api-client.js"></script>
 <script src="js/main.js"></script>
-<script type="module" src="js/studio.js?v=2"></script>
+<script type="module" src="js/studio.js?v=3"></script>
 </body>
 </html>

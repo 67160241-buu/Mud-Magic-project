@@ -1,23 +1,21 @@
 // journey.js — the guided AI design journey (create.html): idea → skill level →
 // AI results (filtered so nothing shown is harder than the chosen level) →
-// compare → customize (live 3D + freeform sculpt + real-time difficulty check)
+// compare → customize (the full Studio editor, embedded; live difficulty check)
 // → confirm/download guide → build (offline) → feedback.
 //
 // Runs on the same engine as the free-form Studio: pot-engine.js builds the
 // 3D pot for all six vessel types (vase, bowl, pitcher, plate, mug, sculpture),
 // vessels.js holds the design vocabulary and the difficulty / feasibility
-// assessment, vessel-ai.js turns the idea into complete configs, and sculpt.js
-// does freeform vertex sculpting. The finished design can be handed to the
-// Studio (studio.html?d=...) for fine control.
+// assessment and vessel-ai.js turns the idea into complete configs. The
+// customize step embeds studio.html?embed=1 (profile editor, sculpting, glaze,
+// patterns…) and receives every change back through postMessage.
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildPotGroup, disposePotGroup } from "./pot-engine.js";
-import { Sculptor } from "./sculpt.js";
 import { suggestVessels, offlineVessels, readPrompt } from "./vessel-ai.js";
 import { simplifyForSkill } from "./skill-fit.js";
 import {
-  VESSELS, VESSEL_IDS, NECKS, FEET, HANDLES, CLAYS, FINISHES, GLAZES, RAW_GLAZE, PATTERNS, SKILLS,
-  normalizeConfig, configForVessel, encodeConfig, assess, glazeLabel, buildGuide,
+  VESSELS, VESSEL_IDS, NECKS, FEET, HANDLES, CLAYS, FINISHES, SKILLS,
+  normalizeConfig, encodeConfig, assess, glazeLabel, buildGuide,
 } from "./vessels.js";
 
 const DRAFT_KEY = "mudmagic_journey_draft_v1";
@@ -28,7 +26,6 @@ const STUCK_THRESHOLD = 3;
 const RESULT_COUNT = 4;
 const POOL_SIZE = 8;
 const POOL_ATTEMPTS = 4;
-const STRENGTH_SCALE = 0.5; // same brush feel as the Studio
 
 const $ = (id) => document.getElementById(id);
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -218,6 +215,7 @@ const STEP_LABEL_TH = { idea: "ไอเดีย", skill: "ระดับฝ�
 
 function goToStep(step) {
   state.step = step;
+  if (step !== "idea") $("draft-banner")?.classList.add("hidden"); // the resume offer only makes sense at the start
   document.querySelectorAll(".step-panel").forEach((p) => p.classList.toggle("hidden", p.dataset.step !== step));
   const label = $("progress-label");
   if (label) label.textContent = `${STEP_ORDER.indexOf(step) + 1}/${STEP_ORDER.length} · ${STEP_LABEL_TH[step]}`;
@@ -272,7 +270,7 @@ function renderVesselPrefs() {
     btn.type = "button";
     btn.dataset.vesselPref = o.id || "auto";
     btn.className = "flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm transition-colors";
-    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">${o.icon}</span>${esc(o.label)}`;
+    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">${o.icon}</span>${esc(o.label)}`;
     paintPick(btn, (state.vesselPref || null) === o.id);
     btn.addEventListener("click", () => {
       state.vesselPref = o.id;
@@ -442,41 +440,39 @@ function renderResults() {
     const inCompare = s.compareIds.includes(r.id);
     const dot = LEVEL_DOT[r.a.level];
     const card = document.createElement("div");
-    card.className = "bg-surface-container-lowest rounded-xl overflow-hidden soft-shadow group transition-all duration-500 hover:shadow-xl" + (inCompare ? " ring-2 ring-primary" : "");
+    card.className = "bg-surface-container-lowest rounded-xl overflow-hidden soft-shadow group transition-all duration-300 hover:shadow-xl flex flex-col border border-outline-variant/30" + (inCompare ? " ring-2 ring-primary" : "");
     card.innerHTML = `
-      <div class="relative h-64 w-full bg-surface-container overflow-hidden">
-        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" src="${r.thumb}" alt="${esc(r.name)} — 3D render" />
-        <div class="absolute bottom-4 left-4">
-          <span class="bg-surface-variant/80 backdrop-blur text-on-surface-variant font-label-sm text-label-sm px-3 py-1 rounded-full uppercase tracking-wider">${esc(r.chip)}</span>
+      <div class="relative h-52 w-full bg-surface-container overflow-hidden">
+        <img class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out" src="${r.thumb}" alt="${esc(r.name)} — 3D render" />
+        <div class="absolute bottom-2 left-2">
+          <span class="bg-surface-variant/80 backdrop-blur text-on-surface-variant text-xs px-2 py-0.5 rounded-full uppercase tracking-wider">${esc(r.chip)}</span>
         </div>
-        ${inCompare ? '<div class="absolute top-4 right-4 bg-primary text-on-primary font-label-sm text-label-sm px-3 py-1 rounded-full">เลือกแล้ว</div>' : ""}
+        ${inCompare ? '<div class="absolute top-2 right-2 bg-primary text-on-primary text-xs px-2 py-0.5 rounded-full">เลือกแล้ว</div>' : ""}
       </div>
-      <div class="p-7">
-        <div class="mb-5">
-          <h2 class="font-headline-md text-[26px] leading-8 text-on-surface mb-2">${esc(r.name)}</h2>
-          <div class="flex items-center gap-2 font-label-sm text-label-sm" style="color:${dot}">
-            <span class="material-symbols-outlined fill text-[14px]">circle</span> ${esc(r.a.levelLabelEn)} · ${esc(r.a.levelLabel)}
-          </div>
+      <div class="p-5 flex flex-col flex-1">
+        <h2 class="card-title text-on-surface mb-1">${esc(r.name)}</h2>
+        <div class="flex items-center gap-1.5 text-xs mb-3" style="color:${dot}">
+          <span class="material-symbols-outlined fill" style="font-size:12px;">circle</span> ${esc(r.a.levelLabelEn)} · ${esc(r.a.levelLabel)}
         </div>
-        <div class="grid grid-cols-2 gap-4 mb-5 pb-5 border-b border-outline-variant/30">
+        <div class="grid grid-cols-2 gap-3 mb-3 pb-3 border-b border-outline-variant/30">
           <div>
-            <span class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase">Difficulty</span>
-            <span class="font-body-lg text-body-lg text-primary">${r.a.d5}/5</span>
+            <span class="block text-xs text-on-surface-variant mb-0.5 uppercase tracking-wider">Difficulty</span>
+            <span class="text-lg font-medium text-primary">${r.a.d5}/5</span>
           </div>
           <div>
-            <span class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase">Feasibility</span>
-            <span class="font-body-lg text-body-lg text-primary">${r.a.feasibility}%</span>
+            <span class="block text-xs text-on-surface-variant mb-0.5 uppercase tracking-wider">Feasibility</span>
+            <span class="text-lg font-medium text-primary">${r.a.feasibility}%</span>
           </div>
         </div>
-        <ul class="space-y-2 font-body-md text-sm text-on-surface-variant mb-7">
-          <li class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[20px]">check</span>${esc(r.a.method)}</li>
-          <li class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[20px]">straighten</span>${esc(dimsText(r.config))}</li>
-          <li class="flex items-start gap-2 text-xs"><span class="material-symbols-outlined text-secondary text-[18px]">check</span><span>${esc(r.a.notes[0])}</span></li>
-          ${r.simplified ? '<li class="flex items-start gap-2 text-xs text-tertiary"><span class="material-symbols-outlined text-[18px]">tune</span><span>ปรับให้ง่ายลงจากแบบ AI เดิม เพื่อให้พอดีกับระดับฝีมือของคุณ</span></li>' : ""}
+        <ul class="space-y-2 text-sm text-on-surface-variant mb-4 flex-1">
+          <li class="flex items-start gap-1.5"><span class="material-symbols-outlined text-secondary" style="font-size:18px;">check</span><span>${esc(r.a.method)}</span></li>
+          <li class="flex items-start gap-1.5"><span class="material-symbols-outlined text-secondary" style="font-size:18px;">straighten</span><span>${esc(dimsText(r.config))}</span></li>
+          <li class="flex items-start gap-1.5 text-xs"><span class="material-symbols-outlined text-secondary" style="font-size:18px;">info</span><span>${esc(r.a.notes[0])}</span></li>
+          ${r.simplified ? '<li class="flex items-start gap-1.5 text-xs text-tertiary"><span class="material-symbols-outlined" style="font-size:18px;">tune</span><span>ปรับให้ง่ายลงจากแบบ AI เดิม ให้พอดีกับระดับฝีมือของคุณ</span></li>' : ""}
         </ul>
-        <div class="flex gap-3">
-          <button data-act="compare" class="flex-1 border ${inCompare ? "border-primary text-primary" : "border-outline text-on-surface"} py-3 rounded hover:bg-surface-variant transition-colors font-label-sm text-label-sm">${inCompare ? "เอาออก" : "Compare"}</button>
-          <button data-act="customize" class="flex-1 bg-primary text-on-primary py-3 rounded hover:bg-surface-tint transition-colors font-label-sm text-label-sm">Customize</button>
+        <div class="flex gap-2">
+          <button data-act="compare" class="flex-1 border ${inCompare ? "border-primary text-primary" : "border-outline text-on-surface"} py-2.5 rounded-md hover:bg-surface-variant transition-colors text-sm">${inCompare ? "เอาออก" : "Compare"}</button>
+          <button data-act="customize" class="flex-1 bg-primary text-on-primary py-2.5 rounded-md hover:bg-surface-tint transition-colors text-sm">Customize</button>
         </div>
       </div>`;
     card.querySelector('[data-act="compare"]').addEventListener("click", () => {
@@ -554,40 +550,24 @@ function renderCompare() {
     const dots = LEVEL_DOTS[r.a.level] || 1;
     const vessel = VESSELS[r.config.vessel];
     const card = document.createElement("div");
-    card.className = "design-card relative flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden " + (isRec ? "border-2 border-primary/20 bg-surface-container-low shadow-sm" : "border border-outline-variant/30");
+    card.className = "design-card relative flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden " + (isRec ? "border-2 border-primary/30 shadow-sm" : "border border-outline-variant/30");
+    const row = (label, value, last) => `<div class="flex justify-between items-center gap-3 py-3 ${last ? "" : "border-b border-outline-variant/40"}"><span class="text-sm text-on-surface-variant">${label}</span>${value}</div>`;
     card.innerHTML = `
-      ${isRec ? '<div class="absolute top-4 left-4 z-10 bg-primary text-on-primary font-label-sm text-label-sm px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm"><span class="material-symbols-outlined fill text-[16px]">star</span> Recommended</div>' : ""}
-      <div class="relative w-full h-64 md:h-72 bg-surface-container-high overflow-hidden">
-        <img class="w-full h-full object-cover" src="${r.thumb}" alt="${esc(r.name)}" />
+      ${isRec ? '<div class="absolute top-3 left-3 z-10 bg-primary text-on-primary text-xs px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm"><span class="material-symbols-outlined fill" style="font-size:14px;">star</span> Recommended</div>' : ""}
+      <div class="relative w-full h-56 bg-surface-container overflow-hidden">
+        <img class="w-full h-full object-contain" src="${r.thumb}" alt="${esc(r.name)}" />
       </div>
-      <div class="p-6 md:p-7 flex flex-col flex-grow">
-        <h3 class="font-headline-md text-[26px] leading-8 text-on-background mb-2">${esc(r.name)}</h3>
-        <div class="flex-grow mt-4">
-          <div class="flex justify-between items-center py-3 border-b border-outline-variant/50">
-            <span class="text-sm text-on-surface-variant">Shape</span>
-            <span class="text-sm text-on-background font-medium text-right">${esc(vessel.label)} · ${esc(dimsText(r.config))}</span>
-          </div>
-          <div class="flex justify-between items-center py-3 border-b border-outline-variant/50">
-            <span class="text-sm text-on-surface-variant">Style</span>
-            <span class="${CHIP_STYLE[r.config.surface]} font-label-sm text-label-sm px-3 py-1 rounded-full">${esc(r.chip)}</span>
-          </div>
-          <div class="flex justify-between items-center py-3 border-b border-outline-variant/50">
-            <span class="text-sm text-on-surface-variant">Technique</span>
-            <span class="text-sm text-on-background text-right">${esc(r.a.method)}</span>
-          </div>
-          <div class="flex justify-between items-center py-3 border-b border-outline-variant/50">
-            <span class="text-sm text-on-surface-variant">Feasibility</span>
-            <span class="text-sm text-on-background font-medium">${r.a.feasibility}%</span>
-          </div>
-          <div class="flex justify-between items-center py-3">
-            <span class="text-sm text-on-surface-variant">Difficulty · ${r.a.d5}/5</span>
-            <div class="flex gap-1 text-primary">
-              ${[1, 2, 3].map((n) => `<span class="material-symbols-outlined ${n <= dots ? "fill" : ""} text-[18px] ${n <= dots ? "" : "opacity-40"}">circle</span>`).join("")}
-            </div>
-          </div>
+      <div class="p-6 flex flex-col flex-grow">
+        <h3 class="card-title text-on-background mb-2">${esc(r.name)}</h3>
+        <div class="flex-grow">
+          ${row("Shape", `<span class="text-sm text-on-background font-medium text-right">${esc(vessel.label)} · ${esc(dimsText(r.config))}</span>`)}
+          ${row("Style", `<span class="${CHIP_STYLE[r.config.surface]} text-xs px-2.5 py-0.5 rounded-full">${esc(r.chip)}</span>`)}
+          ${row("Technique", `<span class="text-sm text-on-background text-right">${esc(r.a.method)}</span>`)}
+          ${row("Feasibility", `<span class="text-sm text-on-background font-medium">${r.a.feasibility}%</span>`)}
+          ${row(`Difficulty · ${r.a.d5}/5`, `<div class="flex gap-0.5 text-primary">${[1, 2, 3].map((n) => `<span class="material-symbols-outlined ${n <= dots ? "fill" : ""} ${n <= dots ? "" : "opacity-40"}" style="font-size:14px;">circle</span>`).join("")}</div>`, true)}
         </div>
-        <button class="mt-7 w-full ${isRec ? "bg-primary text-on-primary hover:bg-primary-container" : "bg-surface-container-lowest border border-outline-variant text-on-surface hover:border-primary"} font-label-sm text-label-sm px-6 py-3.5 rounded-lg transition-colors duration-300 flex justify-center items-center gap-2 group">
-          เลือกแบบนี้ <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" style="font-size:18px;">arrow_forward</span>
+        <button class="mt-4 w-full ${isRec ? "bg-primary text-on-primary hover:bg-primary-container" : "bg-surface-container-lowest border border-outline-variant text-on-surface hover:border-primary"} text-base px-5 py-2.5 rounded-lg transition-colors duration-300 flex justify-center items-center gap-2 group">
+          เลือกแบบนี้ <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" style="font-size:16px;">arrow_forward</span>
         </button>
       </div>`;
     card.querySelector("button").addEventListener("click", () => {
@@ -602,332 +582,12 @@ function initCompare() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Step: ปรับแต่ง — live 3D + controls + sculpt + difficulty banner     */
+/* Step: ปรับแต่ง — the real Studio editor, embedded (studio.html?embed=1) */
+/* The iframe posts every config change back; we keep it as activeConfig.  */
 /* ------------------------------------------------------------------ */
-let scene, camera, renderer, controls, potGroup, sculptor, brushCursor, dimsChip, ground;
-let potScale = 1;
-let potRotY = 0.5;
-let rebuildQueued = false;
-let viewportReady = false;
-
-function initViewport() {
-  if (viewportReady) return;
-  viewportReady = true;
-  const container = $("customize-viewport");
-
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
-  camera.position.set(0, 0.8, 3.5);
-
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  container.appendChild(renderer.domElement);
-
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.minDistance = 1.6;
-  controls.maxDistance = 6;
-  controls.minPolarAngle = Math.PI * 0.12;
-  controls.maxPolarAngle = Math.PI * 0.88;
-  controls.target.set(0, 0, 0);
-  controls.update();
-
-  const key = new THREE.DirectionalLight(0xfff4ea, 2.4);
-  key.position.set(2.6, 3.6, 2.4);
-  key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
-  key.shadow.camera.near = 1;
-  key.shadow.camera.far = 10;
-  key.shadow.bias = -0.0004;
-  key.shadow.normalBias = 0.015;
-  scene.add(key);
-  const fill = new THREE.DirectionalLight(0xffe9dd, 0.85);
-  fill.position.set(-3, 1.2, -2.2);
-  scene.add(fill);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-
-  ground = new THREE.Mesh(new THREE.CircleGeometry(2.4, 48), new THREE.ShadowMaterial({ opacity: 0.16 }));
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
-
-  sculptor = new Sculptor(camera, renderer.domElement, controls);
-
-  brushCursor = new THREE.Mesh(
-    new THREE.RingGeometry(1, 1.06, 32),
-    new THREE.MeshBasicMaterial({ color: 0x88452f, side: THREE.DoubleSide, transparent: true, opacity: 0.85, depthTest: false })
-  );
-  brushCursor.visible = false;
-  brushCursor.renderOrder = 10;
-  scene.add(brushCursor);
-
-  dimsChip = document.createElement("div");
-  dimsChip.className = "absolute left-3 bottom-3 bg-surface/90 backdrop-blur text-on-surface-variant text-xs px-3 py-1.5 rounded-full pointer-events-none";
-  dimsChip.id = "customize-dims";
-  container.appendChild(dimsChip);
-
-  function resize() {
-    const { clientWidth, clientHeight } = container;
-    if (!clientWidth || !clientHeight) return;
-    camera.aspect = clientWidth / clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(clientWidth, clientHeight);
-  }
-  new ResizeObserver(resize).observe(container);
-  resize();
-
-  (function animate() {
-    requestAnimationFrame(animate);
-    sculptor.tick();
-    updateBrushCursor();
-    controls.update();
-    renderer.render(scene, camera);
-  })();
-
-  buildControls();
-  initSculptControls();
-}
-
-function updateBrushCursor() {
-  if (!sculptor || !sculptor.active || !potGroup) {
-    if (brushCursor) brushCursor.visible = false;
-    return;
-  }
-  const p = sculptor.getCursorLocal();
-  const n = sculptor.getCursorNormalLocal();
-  if (!p) {
-    brushCursor.visible = false;
-    return;
-  }
-  brushCursor.visible = true;
-  brushCursor.position.copy(p);
-  potGroup.localToWorld(brushCursor.position);
-  brushCursor.scale.setScalar(sculptor.brushRadius * potScale);
-  if (n) {
-    const wn = n.clone().transformDirection(potGroup.matrixWorld);
-    brushCursor.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), wn);
-  }
-}
-
-function rebuildPot() {
-  rebuildQueued = false;
-  if (!scene) return;
-  if (potGroup) {
-    potRotY = potGroup.rotation.y;
-    scene.remove(potGroup);
-    disposePotGroup(potGroup);
-  }
-  potGroup = buildPotGroup(student().activeConfig);
-  potScale = placeGroup(potGroup, potRotY);
-  ground.position.y = potGroup.position.y - 0.003;
-  scene.add(potGroup);
-  sculptor.setTarget(potGroup.getObjectByName("pot-body"));
-  updateDims();
-}
-function scheduleRebuild() {
-  if (rebuildQueued) return;
-  rebuildQueued = true;
-  requestAnimationFrame(rebuildPot);
-}
-
-function updateDims() {
-  if (!dimsChip || !potGroup) return;
-  const info = potGroup.userData.info || {};
-  const c = student().activeConfig;
-  const parts = [`สูง ${round1(info.heightCm ?? c.height)} ซม.`, `กว้างสุด ${round1(c.belly)} ซม.`];
-  if (!VESSELS[c.vessel].solid && info.rimCm) parts.push(`ปาก ${round1(info.rimCm)} ซม.`);
-  dimsChip.textContent = parts.join(" · ");
-}
-
-function currentPatternId(c) {
-  if (!c.modulation) return "none";
-  const m = c.modulation;
-  const hit = PATTERNS.find(
-    (p) =>
-      p.mod &&
-      p.mod.scallopMotif === m.scallopMotif &&
-      p.mod.scallopWaveform === m.scallopWaveform &&
-      (p.mod.ripples > 0) === (m.ripples > 0) &&
-      (p.mod.ruffles > 0) === (m.ruffles > 0) &&
-      (p.mod.scallops > 0) === (m.scallops > 0)
-  );
-  return hit ? hit.id : null; // null = a custom pattern (e.g. from the AI) — no preset highlighted
-}
-
-function applyConfig(partial) {
-  const s = student();
-  const cur = s.activeConfig;
-  if (partial.vessel && partial.vessel !== cur.vessel) {
-    s.activeConfig = configForVessel(partial.vessel, { clay: cur.clay, texture: cur.texture, color: cur.color, surface: cur.surface, modulation: cur.modulation });
-  } else {
-    s.activeConfig = normalizeConfig({ ...cur, ...partial });
-  }
-  scheduleRebuild();
-  syncControls();
-  refreshDifficultyBanner();
-  saveDraft();
-}
-
-/* ---- control panel (built once, synced on every change) ---- */
-const refs = { vessel: {}, neck: {}, foot: {}, handle: {}, finish: {}, pattern: {}, glaze: {}, sliders: {} };
-
-function sectionEl(icon, title) {
-  const wrap = document.createElement("div");
-  wrap.className = "space-y-2.5";
-  wrap.innerHTML = `<label class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:18px;">${icon}</span> ${esc(title)}</label>`;
-  return wrap;
-}
-function optionGrid(cols, entries, store, onPick) {
-  const grid = document.createElement("div");
-  grid.className = `grid ${cols} gap-2`;
-  entries.forEach(({ id, label, icon }) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.dataset.opt = id;
-    btn.className = "border font-body-md text-sm py-2.5 rounded-lg flex items-center justify-center gap-1.5";
-    btn.innerHTML = (icon ? `<span class="material-symbols-outlined" style="font-size:18px;">${icon}</span>` : "") + esc(label);
-    btn.addEventListener("click", () => onPick(id));
-    store[id] = btn;
-    grid.appendChild(btn);
-  });
-  return grid;
-}
-function sliderRow(key, label, step, onInput) {
-  const row = document.createElement("div");
-  row.innerHTML = `<div class="flex justify-between text-xs text-on-surface-variant mb-1"><span>${esc(label)}</span><span data-val class="font-medium text-on-surface"></span></div>`;
-  const input = document.createElement("input");
-  input.type = "range";
-  input.step = step;
-  input.className = "w-full accent-primary";
-  input.id = `cz-${key}`;
-  input.addEventListener("input", () => onInput(Number(input.value)));
-  row.appendChild(input);
-  refs.sliders[key] = { row, input, val: row.querySelector("[data-val]") };
-  return row;
-}
-
-function buildControls() {
-  const host = $("customize-controls");
-  host.innerHTML = "";
-
-  let sec = sectionEl("category", "ประเภทชิ้นงาน");
-  sec.appendChild(optionGrid("grid-3", VESSEL_IDS.map((id) => ({ id, label: VESSELS[id].label, icon: VESSELS[id].icon })), refs.vessel, (id) => applyConfig({ vessel: id })));
-  host.appendChild(sec);
-
-  sec = sectionEl("straighten", "ขนาด");
-  const sizes = document.createElement("div");
-  sizes.className = "space-y-3";
-  sizes.appendChild(sliderRow("height", "ความสูง (ซม.)", 0.5, (v) => applyConfig({ height: v })));
-  sizes.appendChild(sliderRow("belly", "ความกว้างสุด (ซม.)", 0.5, (v) => applyConfig({ belly: v })));
-  sizes.appendChild(sliderRow("wall", "ความหนาผนัง (ซม.)", 0.1, (v) => applyConfig({ wall: v })));
-  sec.appendChild(sizes);
-  host.appendChild(sec);
-
-  sec = sectionEl("border_top", "ปากภาชนะ");
-  sec.appendChild(optionGrid("grid-2", Object.keys(NECKS).map((id) => ({ id, label: NECKS[id].label })), refs.neck, (id) => applyConfig({ neck: id })));
-  host.appendChild(sec);
-
-  sec = sectionEl("vertical_align_bottom", "ฐาน");
-  sec.appendChild(optionGrid("grid-3", Object.keys(FEET).map((id) => ({ id, label: FEET[id].label })), refs.foot, (id) => applyConfig({ foot: id })));
-  host.appendChild(sec);
-
-  sec = sectionEl("gesture", "หูจับ");
-  sec.appendChild(optionGrid("grid-2", Object.keys(HANDLES).map((id) => ({ id, label: HANDLES[id].label })), refs.handle, (id) => applyConfig({ handle: id })));
-  host.appendChild(sec);
-
-  sec = sectionEl("waves", "ลวดลายผิว");
-  sec.appendChild(
-    optionGrid("grid-3", PATTERNS.map((p) => ({ id: p.id, label: p.label })), refs.pattern, (id) => {
-      const preset = PATTERNS.find((p) => p.id === id);
-      applyConfig({ modulation: preset.mod ? { ...preset.mod } : null });
-    })
-  );
-  host.appendChild(sec);
-
-  sec = sectionEl("texture", "พื้นผิว");
-  sec.appendChild(optionGrid("grid-3", Object.keys(FINISHES).map((id) => ({ id, label: FINISHES[id].label })), refs.finish, (id) => applyConfig({ surface: id })));
-  host.appendChild(sec);
-
-  sec = sectionEl("palette", "สีเคลือบ");
-  const row = document.createElement("div");
-  row.className = "flex flex-wrap gap-2";
-  GLAZES.forEach((g) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.title = g.label;
-    b.dataset.color = g.hex;
-    b.className = "w-8 h-8 rounded-full ring-1 ring-outline-variant/50";
-    b.style.background = g.hex;
-    b.addEventListener("click", () => applyConfig({ color: g.hex }));
-    refs.glaze[g.hex.toLowerCase()] = b;
-    row.appendChild(b);
-  });
-  const raw = document.createElement("button");
-  raw.type = "button";
-  raw.title = "ไม่เคลือบ (เห็นเนื้อดิน)";
-  raw.dataset.color = RAW_GLAZE;
-  raw.className = "w-8 h-8 rounded-full ring-1 ring-outline-variant/50 flex items-center justify-center text-on-surface-variant";
-  raw.style.background = "repeating-linear-gradient(45deg,#e8dcc6,#e8dcc6 4px,#d9c9ad 4px,#d9c9ad 8px)";
-  raw.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">block</span>';
-  raw.addEventListener("click", () => applyConfig({ color: RAW_GLAZE }));
-  refs.glaze[RAW_GLAZE] = raw;
-  row.appendChild(raw);
-  sec.appendChild(row);
-  host.appendChild(sec);
-
-  const link = document.createElement("a");
-  link.id = "customize-studio-link";
-  link.className = "flex items-center justify-between gap-3 border border-outline-variant rounded-lg px-4 py-3 text-sm text-on-surface-variant hover:border-primary hover:text-primary transition-colors";
-  link.innerHTML = '<span class="flex flex-col"><span class="font-medium text-on-surface">ปรับละเอียดใน Studio</span><span class="text-xs">โปรไฟล์โค้ง ลายสี บิด/เหลี่ยม ดินและเคลือบเพิ่มเติม</span></span><span class="material-symbols-outlined">open_in_new</span>';
-  host.appendChild(link);
-}
-
-const ACTIVE_BTN = ["border-primary", "bg-surface-container-low", "text-primary"];
-const INACTIVE_BTN = ["border-outline-variant", "text-on-surface-variant", "bg-surface-container-lowest"];
-function paintOption(btn, active) {
-  ACTIVE_BTN.forEach((c) => btn.classList.toggle(c, active));
-  INACTIVE_BTN.forEach((c) => btn.classList.toggle(c, !active));
-}
-
-function syncControls() {
-  const c = student().activeConfig;
-  const preset = VESSELS[c.vessel];
-  Object.entries(refs.vessel).forEach(([id, b]) => paintOption(b, id === c.vessel));
-  Object.entries(refs.neck).forEach(([id, b]) => paintOption(b, id === c.neck));
-  Object.entries(refs.foot).forEach(([id, b]) => paintOption(b, id === c.foot));
-  Object.entries(refs.handle).forEach(([id, b]) => paintOption(b, id === c.handle));
-  Object.entries(refs.finish).forEach(([id, b]) => paintOption(b, id === c.surface));
-  const pat = currentPatternId(c);
-  Object.entries(refs.pattern).forEach(([id, b]) => paintOption(b, id === pat));
-
-  const colorKey = String(c.color).toLowerCase();
-  Object.entries(refs.glaze).forEach(([key, b]) => {
-    const active = key === colorKey;
-    b.classList.toggle("ring-2", active);
-    b.classList.toggle("ring-primary", active);
-    b.classList.toggle("ring-1", !active);
-    b.classList.toggle("ring-outline-variant/50", !active);
-  });
-
-  const setSlider = (key, range, value, digits) => {
-    const s = refs.sliders[key];
-    s.input.min = range[0];
-    s.input.max = range[1];
-    if (Number(s.input.value) !== value) s.input.value = value;
-    s.val.textContent = value.toFixed(digits);
-  };
-  setSlider("height", preset.height, c.height, 1);
-  setSlider("belly", preset.belly, c.belly, 1);
-  setSlider("wall", preset.wall, c.wall, 1);
-  refs.sliders.wall.row.classList.toggle("hidden", !!preset.solid); // a solid sculpture has no wall
-
-  const link = $("customize-studio-link");
-  if (link) link.href = studioUrl(c);
-}
+let studioFrame = null;
+let studioReady = false;
+let studioSyncedKey = null; // JSON of the config the iframe currently holds
 
 function studioUrl(config) {
   return `studio.html?d=${encodeConfig(config)}`;
@@ -951,44 +611,9 @@ function refreshDifficultyBanner() {
     : `อยู่ในระดับที่เหมาะกับคุณ (${a.levelLabel} · ${a.d5}/5 · ทำได้จริง ${a.feasibility}%)`;
 }
 
-function initSculptControls() {
-  $("mm-sculpt-toggle").addEventListener("click", () => {
-    const next = !sculptor.active;
-    sculptor.setActive(next);
-    const t = $("mm-sculpt-toggle");
-    t.classList.toggle("bg-primary", next);
-    t.classList.toggle("text-on-primary", next);
-    t.classList.toggle("bg-surface-container-lowest", !next);
-    t.classList.toggle("text-on-surface-variant", !next);
-    $("mm-sculpt-controls").classList.toggle("hidden", !next);
-    $("mm-sculpt-hint").classList.toggle("hidden", !next);
-  });
-  const size = $("mm-brush-size");
-  const strength = $("mm-brush-strength");
-  sculptor.setBrushRadius(Number(size.value));
-  sculptor.setBrushStrength(Number(strength.value) * STRENGTH_SCALE);
-  size.addEventListener("input", () => sculptor.setBrushRadius(Number(size.value)));
-  strength.addEventListener("input", () => sculptor.setBrushStrength(Number(strength.value) * STRENGTH_SCALE));
-  document.querySelectorAll("[data-sculpt-mode]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      sculptor.setMode(btn.dataset.sculptMode);
-      document.querySelectorAll("[data-sculpt-mode]").forEach((b) => {
-        const active = b === btn;
-        b.classList.toggle("bg-primary", active);
-        b.classList.toggle("text-on-primary", active);
-        b.classList.toggle("bg-surface-container-lowest", !active);
-        b.classList.toggle("text-on-surface-variant", !active);
-      });
-    });
-  });
-  $("mm-sculpt-reset").addEventListener("click", () => {
-    rebuildPot();
-    toast("ล้างการปั้นอิสระ กลับเป็นทรงตั้งต้นแล้ว", "restart_alt");
-  });
-}
+const configKey = (c) => JSON.stringify(c);
 
 function enterCustomize() {
-  initViewport();
   const s = student();
   if (!s.activeConfig) {
     const first = s.results[0];
@@ -996,20 +621,54 @@ function enterCustomize() {
   } else {
     s.activeConfig = normalizeConfig(s.activeConfig); // also upgrades drafts saved by the mug-only journey
   }
-  rebuildPot();
-  syncControls();
   refreshDifficultyBanner();
-}
-function initCustomize() {
-  $("customize-back-btn").addEventListener("click", () => goToStep(student().compareIds.length > 0 ? "compare" : "results"));
-  $("customize-next-btn").addEventListener("click", () => goToStep("confirm"));
+
+  const frame = $("customize-frame");
+  // Re-entering with the very same design keeps the editor (and any freeform sculpting) as it was.
+  if (studioReady && studioSyncedKey === configKey(s.activeConfig)) return;
+  studioReady = false;
+  try { localStorage.setItem(SKILL_KEY, state.skillLevel || "intermediate"); } catch (err) { /* ignore */ }
+  studioFrame = frame;
+  studioSyncedKey = configKey(s.activeConfig);
+  frame.src = `studio.html?embed=1&d=${encodeConfig(s.activeConfig)}`;
 }
 
-/** Snapshot of the viewport as it is now (sculpt brush ring hidden). */
+function onStudioMessage(e) {
+  if (e.origin !== window.location.origin || !studioFrame || e.source !== studioFrame.contentWindow) return;
+  const msg = e.data;
+  if (msg?.type === "mudmagic-studio-config" && msg.config) {
+    studioReady = true;
+    const cfg = normalizeConfig(msg.config);
+    student().activeConfig = cfg;
+    studioSyncedKey = configKey(cfg);
+    refreshDifficultyBanner();
+    saveDraft();
+  }
+}
+
+/** PNG of the editor's viewport (includes freeform sculpting); falls back to a plain render of the config. */
 function snapshot() {
-  if (brushCursor) brushCursor.visible = false;
-  renderer.render(scene, camera);
-  return renderer.domElement.toDataURL("image/png");
+  return new Promise((resolve) => {
+    const cfg = student().activeConfig;
+    const fallback = () => resolve(renderThumbnail(cfg));
+    if (!studioFrame || !studioReady || !studioFrame.contentWindow) return fallback();
+    const id = uid();
+    const timer = setTimeout(() => { window.removeEventListener("message", onMsg); fallback(); }, 1500);
+    function onMsg(e) {
+      if (e.source !== studioFrame.contentWindow || e.data?.type !== "mudmagic-snapshot" || e.data.id !== id) return;
+      clearTimeout(timer);
+      window.removeEventListener("message", onMsg);
+      resolve(e.data.png || renderThumbnail(cfg));
+    }
+    window.addEventListener("message", onMsg);
+    studioFrame.contentWindow.postMessage({ type: "mudmagic-snapshot-request", id }, window.location.origin);
+  });
+}
+
+function initCustomize() {
+  window.addEventListener("message", onStudioMessage);
+  $("customize-back-btn").addEventListener("click", () => goToStep(student().compareIds.length > 0 ? "compare" : "results"));
+  $("customize-next-btn").addEventListener("click", () => goToStep("confirm"));
 }
 
 /* ------------------------------------------------------------------ */
@@ -1160,7 +819,7 @@ function renderConfirm() {
     li.textContent = step;
     list.appendChild(li);
   });
-  $("confirm-image").src = snapshot();
+  snapshot().then((png) => { if (state.step === "confirm") $("confirm-image").src = png; });
   $("confirm-studio-link").href = studioUrl(cfg);
 }
 
@@ -1182,7 +841,7 @@ function initConfirm() {
     const original = btn.innerHTML;
     btn.textContent = "กำลังเตรียมไฟล์...";
     try {
-      const canvas = await buildGuideCanvas(student().activeConfig, snapshot());
+      const canvas = await buildGuideCanvas(student().activeConfig, await snapshot());
       download("mudmagic-guide.png", canvas.toDataURL("image/png"));
       toast("ดาวน์โหลดคู่มือแล้ว", "download");
     } catch (err) {
