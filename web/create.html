@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta content="width=device-width, initial-scale=1.0" name="viewport" />
 <title>ออกแบบด้วย AI — Mud Magic</title>
-<meta name="description" content="พิมพ์ไอเดีย เลือกระดับฝีมือ แล้วให้ AI แนะนำแบบเซรามิกที่ปั้นได้จริง เปรียบเทียบ ปรับแต่งใน 3D พร้อมปั้นอิสระ ดาวน์โหลดคู่มือ แล้วอวดผลงานจริงของคุณ" />
+<meta name="description" content="พิมพ์ไอเดีย เลือกระดับฝีมือ แล้วให้ AI แนะนำแบบเซรามิกที่ปั้นได้จริงครบทั้งแจกัน ชาม เหยือก จาน แก้วมัค และประติมากรรม เปรียบเทียบ ปรับแต่งใน 3D พร้อมปั้นอิสระ ดาวน์โหลดคู่มือ แล้วอวดผลงานจริงของคุณ" />
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect" />
@@ -116,12 +116,18 @@
 </div>
 
 <div class="max-w-2xl mx-auto">
-<textarea id="idea-prompt" rows="4" class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl p-5 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none soft-shadow" placeholder="เช่น แจกันลายดอกไม้มินิมอล หรือ แก้วทรงสูงเคลือบมัน..."></textarea>
+<textarea id="idea-prompt" rows="4" class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl p-5 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none soft-shadow" placeholder="เช่น แจกันทรงสูงสีเซจ หรือ ชามผิวหยาบสไตล์ญี่ปุ่น..."></textarea>
 
 <p id="idea-vague-hint" class="hidden mt-3 text-sm text-amber-700 flex items-start gap-1.5">
 <span class="material-symbols-outlined" style="font-size:18px;">info</span>
 <span>คำอธิบายยังกว้างไปหน่อย ลองเลือกตัวอย่างด้านล่าง หรือเพิ่มรายละเอียด เช่น ทรง สี หรือผิวสัมผัส</span>
 </p>
+
+<div class="mt-6">
+<p class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider mb-1">ประเภทชิ้นงาน</p>
+<p class="text-xs text-on-surface-variant mb-3">ไม่ต้องเลือกก็ได้ — AI จะอ่านจากไอเดียของคุณ หรือเลือกทรงที่เหมาะให้เอง</p>
+<div id="idea-vessel-row" class="flex flex-wrap gap-2"></div>
+</div>
 
 <div class="mt-6">
 <p class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider mb-3">ตัวอย่างไอเดีย</p>
@@ -239,6 +245,13 @@
 
 <p id="results-empty" class="hidden text-sm text-on-surface-variant bg-surface-container-low rounded-xl p-5 max-w-xl mx-auto mb-8">ยังไม่มีแบบที่เหมาะกับระดับนี้ ลองปรับไอเดียให้เจาะจงขึ้น หรือย้อนกลับไปเลือกระดับฝีมือที่สูงขึ้น</p>
 
+<p id="results-notice" class="hidden text-xs text-on-surface-variant text-center max-w-xl mx-auto mb-8 flex items-center justify-center gap-1.5"></p>
+
+<div id="results-loading" class="hidden text-center py-16 text-on-surface-variant">
+<span class="material-symbols-outlined animate-spin text-primary" style="font-size:36px;">progress_activity</span>
+<p class="text-sm mt-3">AI กำลังคัดแบบและเรนเดอร์ภาพ 3D ให้คุณ...</p>
+</div>
+
 <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 gap-gutter"></div>
 
 <div class="mt-10 flex justify-center">
@@ -286,7 +299,7 @@
 <section class="step-panel hidden" data-step="customize">
 <div class="mb-8">
 <h1 class="font-headline-lg text-headline-lg text-primary mb-2">ปรับแต่งแบบของคุณ</h1>
-<p class="text-on-surface-variant">แตะปุ่มเพื่อเปลี่ยนทรง หูจับ ผิว และสีเคลือบ หรือเปิดโหมดปั้นอิสระเพื่อดัดพื้นผิวด้วยมือเหมือนปั้นดินจริง</p>
+<p class="text-on-surface-variant">เปลี่ยนประเภทชิ้นงาน ขนาด ปากภาชนะ ฐาน หูจับ ลวดลาย ผิว และสีเคลือบ หรือเปิดโหมดปั้นอิสระเพื่อดัดพื้นผิวด้วยมือเหมือนปั้นดินจริง — ระบบประเมินความยากให้ทันทีทุกครั้งที่เปลี่ยน</p>
 </div>
 
 <div id="difficulty-banner" class="border rounded-xl px-4 py-3 mb-6 flex items-center gap-2 text-sm">
@@ -298,44 +311,7 @@
 <div id="customize-viewport" class="relative bg-surface-container-lowest rounded-xl overflow-hidden h-[380px] sm:h-[460px] lg:h-[540px] soft-shadow"></div>
 
 <div class="space-y-7">
-<div class="space-y-2.5">
-<label class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:18px;">category</span> ทรง</label>
-<div class="grid grid-cols-2 gap-2">
-<button data-shape="classic" class="border font-body-md text-sm py-2.5 rounded-lg">คลาสสิก</button>
-<button data-shape="round" class="border font-body-md text-sm py-2.5 rounded-lg">ป่อง</button>
-<button data-shape="tall" class="border font-body-md text-sm py-2.5 rounded-lg">สูง</button>
-<button data-shape="wide" class="border font-body-md text-sm py-2.5 rounded-lg">กว้าง</button>
-</div>
-</div>
-<div class="space-y-2.5">
-<label class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:18px;">gesture</span> หูจับ</label>
-<div class="grid grid-cols-3 gap-2">
-<button data-handle="minimal" class="border font-body-md text-sm py-2.5 rounded-lg">เล็ก</button>
-<button data-handle="loop" class="border font-body-md text-sm py-2.5 rounded-lg">ห่วง</button>
-<button data-handle="organic" class="border font-body-md text-sm py-2.5 rounded-lg">อิสระ</button>
-</div>
-</div>
-<div class="space-y-2.5">
-<label class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:18px;">texture</span> พื้นผิว</label>
-<div class="grid grid-cols-3 gap-2">
-<button data-surface="smooth" class="border font-body-md text-sm py-2.5 rounded-lg">เงา</button>
-<button data-surface="matte" class="border font-body-md text-sm py-2.5 rounded-lg">ด้าน</button>
-<button data-surface="rough" class="border font-body-md text-sm py-2.5 rounded-lg">หยาบ</button>
-</div>
-</div>
-<div class="space-y-2.5">
-<label class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined" style="font-size:18px;">palette</span> สีเคลือบ</label>
-<div class="grid grid-cols-8 gap-2">
-<button data-color="#A65D45" title="ดินเผา" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#A65D45"></button>
-<button data-color="#7C8872" title="เซจ" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#7C8872"></button>
-<button data-color="#F3E9DD" title="ครีม" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#F3E9DD"></button>
-<button data-color="#3B2A20" title="เอสเพรสโซ" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#3B2A20"></button>
-<button data-color="#E3A896" title="ชมพู" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#E3A896"></button>
-<button data-color="#2B2B2B" title="ถ่าน" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#2B2B2B"></button>
-<button data-color="#4C5A66" title="เดนิม" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#4C5A66"></button>
-<button data-color="#FBF6EF" title="งาช้าง" class="w-8 h-8 rounded-full ring-1 ring-outline-variant/50" style="background:#FBF6EF"></button>
-</div>
-</div>
+<div id="customize-controls" class="space-y-7"></div>
 
 <!-- Sculpt (freeform, reuses sculpt.js) -->
 <div class="space-y-3 pt-4 border-t border-outline-variant/30">
@@ -389,10 +365,12 @@
 <div>
 <h2 id="confirm-name" class="font-headline-md text-headline-md text-on-surface mb-4"></h2>
 <dl class="grid grid-cols-2 gap-4 text-sm mb-4">
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ทรง</dt><dd id="confirm-summary-shape" class="font-medium"></dd></div>
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">หูจับ</dt><dd id="confirm-summary-handle" class="font-medium"></dd></div>
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">พื้นผิว</dt><dd id="confirm-summary-surface" class="font-medium"></dd></div>
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ระดับความยาก</dt><dd id="confirm-summary-level" class="font-medium"></dd></div>
+<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ประเภท</dt><dd id="confirm-summary-vessel" class="font-medium"></dd></div>
+<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ขนาด</dt><dd id="confirm-summary-size" class="font-medium"></dd></div>
+<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ปาก · ฐาน · หู</dt><dd id="confirm-summary-detail" class="font-medium"></dd></div>
+<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ดิน · เคลือบ · ผิว</dt><dd id="confirm-summary-material" class="font-medium"></dd></div>
+<div class="col-span-2"><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ระดับความยาก</dt><dd id="confirm-summary-level" class="font-medium"></dd></div>
+<div class="col-span-2"><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">วิธีปั้นที่แนะนำ</dt><dd id="confirm-summary-method" class="font-medium"></dd></div>
 </dl>
 <p id="confirm-summary-reasons" class="text-xs text-on-surface-variant mb-6"></p>
 <h3 class="font-medium text-sm mb-2">ขั้นตอนการปั้น</h3>
@@ -400,10 +378,16 @@
 </div>
 </div>
 
-<div class="mt-8 flex justify-center">
+<div class="mt-8 flex flex-wrap justify-center gap-3">
 <button id="confirm-download-btn" class="px-7 py-3.5 rounded-full bg-secondary text-on-secondary text-sm flex items-center gap-2 hover:opacity-90">
 <span class="material-symbols-outlined" style="font-size:18px;">download</span> ดาวน์โหลดคู่มือปั้น (ไฟล์เดียว)
 </button>
+<button id="confirm-download-md-btn" class="px-6 py-3.5 rounded-full border border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
+<span class="material-symbols-outlined" style="font-size:18px;">description</span> คู่มือแบบข้อความ (.md)
+</button>
+<a id="confirm-studio-link" href="studio.html" class="px-6 py-3.5 rounded-full border border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
+<span class="material-symbols-outlined" style="font-size:18px;">open_in_new</span> เปิดใน Studio เพื่อปรับต่อ
+</a>
 </div>
 
 <div class="mt-10 flex justify-between">
@@ -484,6 +468,6 @@
 
 <script src="js/api-client.js"></script>
 <script src="js/main.js"></script>
-<script type="module" src="js/journey.js"></script>
+<script type="module" src="js/journey.js?v=3"></script>
 </body>
 </html>
