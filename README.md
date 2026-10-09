@@ -23,12 +23,11 @@
 | `web/` | เว็บไซต์ static เสิร์ฟด้วย nginx (Tailwind, three.js 0.160) |
 | Firebase Auth + Firestore | สมัคร/ล็อกอิน (อีเมล และ Google) และเก็บแบบที่บันทึกไว้ในคอลเลกชัน `designs` เบราว์เซอร์คุยกับ Firebase ตรงๆ |
 | `api/` (FastAPI) | ใช้สำหรับ AI เท่านั้น: เก็บ OpenAI key ไว้ฝั่งเซิร์ฟเวอร์ แล้วให้หน้าเว็บเรียกผ่าน `/ai/*` |
-| Postgres + Adminer | ระบบบัญชีเดิมก่อนย้ายไป Firebase ยังอยู่ใน `docker-compose.yml` จนกว่าจะย้ายข้อมูลผู้ใช้เสร็จ |
 
 ## วิธีรัน
 
 ```bash
-cp api/.env.example api/.env    # ใส่ JWT_SECRET_KEY และ OPENAI_API_KEY (ถ้ามี)
+cp api/.env.example api/.env    # ใส่ OPENAI_API_KEY (ถ้ามี)
 docker compose up -d --build
 ```
 
@@ -36,7 +35,6 @@ docker compose up -d --build
 |---|---|
 | เว็บไซต์ | http://localhost:8080 |
 | API (AI) | http://localhost:8000 · เอกสาร http://localhost:8000/docs |
-| Adminer | http://localhost:8081 |
 
 **การอัปเดตหลังแก้โค้ด**
 - แก้ไฟล์ใน `web/` → กด Ctrl+F5 ในเบราว์เซอร์
@@ -44,7 +42,9 @@ docker compose up -d --build
 - แก้ `api/.env` → `docker compose up -d api` (ค่า env ถูกอ่านตอนสร้าง container เท่านั้น `restart` ไม่พอ)
 - แก้ `api/requirements.txt` → `docker compose up -d --build api`
 
-**Firebase:** ค่าฝั่งเว็บอยู่ใน `web/js/firebase-config.js` (เปิดเผยได้) กฎความปลอดภัยอยู่ใน `firestore.rules` ส่วนไฟล์ service account (`firebase-service-account*.json`) เป็นความลับ ห้ามขึ้น GitHub (`.gitignore` กันไว้แล้ว) ใช้เฉพาะตอนรัน `api/scripts/migrate_to_firebase.py` เพื่อย้ายผู้ใช้และแบบจาก Postgres
+**Firebase:** ค่าฝั่งเว็บอยู่ใน `web/js/firebase-config.js` (เปิดเผยได้) กฎความปลอดภัยอยู่ใน `firestore.rules` ส่วนไฟล์ service account (`firebase-service-account*.json`) เป็นความลับ ห้ามขึ้น GitHub (`.gitignore` กันไว้แล้ว)
+
+**ระบบบัญชีเดิม (Postgres + Adminer) ถูกเอาออกแล้ว** ตอนนี้การล็อกอินและแบบที่บันทึกใช้ Firebase อย่างเดียว ถ้าเครื่องไหนยังมี volume ข้อมูลเก่าค้างอยู่ ลบได้ด้วย `docker volume ls` (หาชื่อที่ลงท้าย `_pgdata`) แล้ว `docker volume rm <ชื่อ>` ซึ่งลบแล้วกู้คืนไม่ได้
 
 ## การตั้งค่า AI (OpenAI)
 
@@ -104,7 +104,7 @@ AI เสนอได้แค่ค่า ฝั่งเซิร์ฟเว�
 
 ```
 Mud-Magic-project/
-├── docker-compose.yml        ← db + api + web + adminer
+├── docker-compose.yml        ← api + web
 ├── firebase.json / firestore.rules
 ├── nginx/default.conf
 ├── web/
@@ -129,20 +129,19 @@ Mud-Magic-project/
 │       ├── dashboard.js  wave.js  mug-model.js
 └── api/
     ├── Dockerfile  entrypoint.sh  requirements.txt  .env.example
-    ├── alembic/                 ← migration ของ Postgres
-    ├── scripts/migrate_to_firebase.py
+    ├── alembic/  scripts/migrate_to_firebase.py   ← ของระบบ Postgres เดิม ไม่ได้ใช้แล้ว
     ├── app/
     │   ├── main.py  config.py  …
     │   └── routers/ai.py        ← /ai/* (OpenAI)
-    │       (auth.py users.py projects.py tasks.py = ระบบบัญชีเดิมบน Postgres)
+    │       (auth.py users.py projects.py tasks.py = ระบบบัญชีเดิมบน Postgres ไม่ได้เปิดใช้แล้ว)
     └── tests/
 ```
 
-รายละเอียด API เดิม (auth, projects, pytest) ดูที่ [`api/README.md`](./api/README.md)
+รายละเอียด API เดิมบน Postgres (ไม่ได้ใช้แล้ว เก็บไว้อ้างอิง) ดูที่ [`api/README.md`](./api/README.md)
 
 ## ความลับที่ห้ามขึ้น GitHub
 
-`.gitignore` กันไว้แล้ว: `api/.env` (OpenAI key, JWT secret), `firebase-service-account*.json`, `*.pem`, `*.key` และโฟลเดอร์สำรอง `.backup-*/` ก่อน commit ให้ดู `git status` ทุกครั้งว่าไม่มีไฟล์เหล่านี้ในรายการ
+`.gitignore` กันไว้แล้ว: `api/.env` (OpenAI key), `firebase-service-account*.json`, `*.pem`, `*.key` และโฟลเดอร์สำรอง `.backup-*/` ก่อน commit ให้ดู `git status` ทุกครั้งว่าไม่มีไฟล์เหล่านี้ในรายการ
 
 ```bash
 git add -A
