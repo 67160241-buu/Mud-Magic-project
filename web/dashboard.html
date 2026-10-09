@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html class="light" lang="th">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>แดชบอร์ด · Mud Magic</title>
+<meta name="description" content="แดชบอร์ดของคุณใน Mud Magic: แบบเซรามิกที่บันทึกไว้ ความเป็นไปได้ในการปั้น และโปรไฟล์บัญชี" />
+<link rel="icon" href="data:," />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-secondary-container": "#5c6853", "on-background": "#1f1b17", "on-error-container": "#93000a",
+          "inverse-surface": "#352f2b", "on-tertiary": "#ffffff", "surface-container": "#f6ece5",
+          "on-tertiary-container": "#fff4ea", "on-secondary": "#ffffff", "surface-container-low": "#fcf2eb",
+          "on-primary-fixed-variant": "#733520", "secondary-fixed-dim": "#becbb2", "on-primary-fixed": "#390b00",
+          "error": "#ba1a1a", "on-secondary-fixed": "#141e0f", "inverse-primary": "#ffb59d",
+          "surface-bright": "#fff8f5", "on-primary": "#ffffff", "primary-fixed": "#ffdbd0", "primary": "#88452f",
+          "surface-container-lowest": "#ffffff", "surface-container-high": "#f0e6e0", "on-surface-variant": "#54433e",
+          "secondary-fixed": "#dae7cd", "tertiary": "#645643", "on-error": "#ffffff", "on-primary-container": "#fff4f1",
+          "tertiary-fixed": "#f4e0c7", "on-secondary-fixed-variant": "#3f4a37", "primary-container": "#a65d45",
+          "surface-variant": "#ebe1da", "outline-variant": "#d9c1bb", "outline": "#86736d",
+          "tertiary-container": "#7d6e5a", "primary-fixed-dim": "#ffb59d", "surface-container-highest": "#ebe1da",
+          "on-tertiary-fixed-variant": "#524532", "surface": "#fff8f5", "secondary-container": "#dae7cd",
+          "on-surface": "#1f1b17", "background": "#fff8f5", "tertiary-fixed-dim": "#d7c4ac",
+          "on-tertiary-fixed": "#241a0b", "inverse-on-surface": "#f9efe8", "secondary": "#56624e",
+          "surface-dim": "#e2d8d2", "error-container": "#ffdad6", "surface-tint": "#904b35",
+        },
+        borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+        spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
+        fontFamily: {
+          "body-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "display-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "headline-md": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "display-lg-mobile": ["Prompt", "Noto Sans Thai", "sans-serif"], "body-md": ["Prompt", "Noto Sans Thai", "sans-serif"], "headline-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "label-sm": ["Prompt", "Noto Sans Thai", "sans-serif"],
+        },
+        fontSize: {
+          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "display-lg": ["80px", { lineHeight: "88px", letterSpacing: "-0.02em", fontWeight: "400" }],
+          "headline-md": ["32px", { lineHeight: "40px", fontWeight: "400" }],
+          "display-lg-mobile": ["48px", { lineHeight: "52px", letterSpacing: "-0.01em", fontWeight: "400" }],
+          "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-lg": ["36px", { lineHeight: "44px", fontWeight: "400" }],
+          "label-sm": ["13px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+        },
+      },
+    },
+  };
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  .dash-section { scroll-margin-top: 104px; }
+  .thumb-shimmer { background: linear-gradient(110deg, #f6ece5 30%, #fcf2eb 50%, #f6ece5 70%); background-size: 200% 100%; animation: dash-shimmer 1.4s linear infinite; }
+  @keyframes dash-shimmer { to { background-position: -200% 0; } }
+  .side-link[aria-current="true"] { background: #f0e6e0; color: #88452f; }
+</style>
+<style>body { font-family: "Prompt", "Noto Sans Thai", sans-serif; }</style>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen">
+
+<!-- Top nav (same links as the other pages; the profile chip is filled in by main.js) -->
+<nav class="fixed top-0 left-0 w-full z-50 bg-surface/85 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm" id="top-nav">
+  <div class="flex justify-between items-center px-5 md:px-8 h-[72px] max-w-[1440px] mx-auto gap-4">
+    <a class="flex items-center gap-2 font-headline-md text-[26px] leading-none text-primary tracking-tight" href="index.html">
+      <span class="material-symbols-outlined text-[28px]" style="font-variation-settings:'FILL' 1">palette</span>Mud Magic
+    </a>
+    <div class="hidden md:flex items-center gap-6">
+      <a class="text-primary border-b-2 border-primary pb-1 font-label-sm text-label-sm" href="dashboard.html">Dashboard</a>
+      <a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="studio.html">3D Studio</a>
+      <a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="create.html">Create with AI</a>
+      <a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="index.html#gallery">Gallery</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="create.html" class="hidden sm:inline-flex items-center gap-1.5 bg-primary text-on-primary px-5 py-2 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span>New Design
+      </a>
+      <a href="login.html?next=dashboard.html" id="mm-account-link" class="inline-flex bg-surface-container-high text-on-surface font-label-sm text-label-sm px-4 py-2 rounded-full">Sign in</a>
+    </div>
+  </div>
+</nav>
+
+<div class="pt-[72px] max-w-[1440px] mx-auto flex">
+  <!-- Sidebar -->
+  <aside class="hidden lg:flex flex-col w-60 shrink-0 sticky top-[72px] h-[calc(100vh-72px)] border-r border-outline-variant/30 bg-surface-container-low px-4 py-8">
+    <p class="px-3 mb-3 font-label-sm text-[11px] uppercase tracking-[0.12em] text-on-surface-variant">พื้นที่ของฉัน</p>
+    <nav class="flex flex-col gap-1" id="side-nav">
+      <a class="side-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors font-label-sm text-label-sm" href="#overview" aria-current="true"><span class="material-symbols-outlined text-[20px]">space_dashboard</span>ภาพรวม</a>
+      <a class="side-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors font-label-sm text-label-sm" href="#works"><span class="material-symbols-outlined text-[20px]">category</span>ผลงานของฉัน</a>
+      <a class="side-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors font-label-sm text-label-sm" href="#assistant"><span class="material-symbols-outlined text-[20px]">auto_awesome</span>ผู้ช่วย AI</a>
+      <a class="side-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors font-label-sm text-label-sm" href="#profile"><span class="material-symbols-outlined text-[20px]">account_circle</span>โปรไฟล์</a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors font-label-sm text-label-sm" href="studio.html"><span class="material-symbols-outlined text-[20px]">view_in_ar</span>เปิดสตูดิโอ 3D</a>
+    </nav>
+    <div class="mt-auto space-y-3">
+      <div class="rounded-xl bg-surface-container px-4 py-3 flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-[20px]">school</span>
+        <div class="leading-tight">
+          <p class="font-label-sm text-[11px] text-on-surface-variant">ระดับฝีมือ</p>
+          <p class="font-label-sm text-label-sm text-on-surface" data-skill-label>ปานกลาง</p>
+        </div>
+      </div>
+      <button type="button" data-logout class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-error-container hover:text-error transition-colors font-label-sm text-label-sm"><span class="material-symbols-outlined text-[20px]">logout</span>ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 min-w-0 px-5 md:px-10 py-8 md:py-10">
+    <!-- Loading / signed-out states -->
+    <div id="dash-loading" class="py-24 text-center text-on-surface-variant">
+      <span class="material-symbols-outlined animate-spin text-primary text-[32px]">progress_activity</span>
+      <p class="mt-3">กำลังโหลดข้อมูลบัญชี…</p>
+    </div>
+
+    <div id="dash-content" class="hidden space-y-14">
+      <!-- Overview -->
+      <section id="overview" class="dash-section space-y-8">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <p class="font-label-sm text-[11px] uppercase tracking-[0.12em] text-on-surface-variant">แดชบอร์ด · <span id="dash-today"></span></p>
+            <h1 class="mt-2 font-headline-lg text-[30px] md:text-headline-lg text-on-surface">ยินดีต้อนรับกลับ, <span id="dash-name">คุณ</span></h1>
+            <p class="mt-2 text-on-surface-variant max-w-xl" id="dash-intro">กำลังโหลดผลงานของคุณ…</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <a href="studio.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-sm text-label-sm"><span class="material-symbols-outlined text-[18px]">view_in_ar</span>เปิดสตูดิโอ 3D</a>
+            <a href="create.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-on-primary hover:bg-surface-tint transition-colors shadow-sm font-label-sm text-label-sm"><span class="material-symbols-outlined text-[18px]">auto_awesome</span>ออกแบบใหม่ด้วย AI</a>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-4" id="dash-stats">
+          <div class="rounded-xl bg-surface-container-low border border-outline-variant/30 p-5">
+            <div class="flex items-start justify-between"><p class="font-label-sm text-[11px] uppercase tracking-[0.1em] text-on-surface-variant">แบบที่บันทึกไว้</p><span class="material-symbols-outlined text-primary text-[20px]">inventory_2</span></div>
+            <p class="mt-4 font-headline-lg text-[40px] leading-none text-on-surface" data-stat="count">0</p>
+            <p class="mt-3 text-[13px] text-on-surface-variant" data-stat="count-note">ยังไม่มีแบบที่บันทึก</p>
+          </div>
+          <div class="rounded-xl bg-surface-container-low border border-outline-variant/30 p-5">
+            <div class="flex items-start justify-between"><p class="font-label-sm text-[11px] uppercase tracking-[0.1em] text-on-surface-variant">ความเป็นไปได้เฉลี่ย</p><span class="material-symbols-outlined text-primary text-[20px]">verified</span></div>
+            <p class="mt-4 font-headline-lg text-[40px] leading-none text-on-surface" data-stat="feasibility">–</p>
+            <p class="mt-3 text-[13px] text-on-surface-variant" data-stat="feasibility-note">คำนวณจากระดับฝีมือของคุณ</p>
+          </div>
+          <div class="rounded-xl bg-surface-container-low border border-outline-variant/30 p-5">
+            <div class="flex items-start justify-between"><p class="font-label-sm text-[11px] uppercase tracking-[0.1em] text-on-surface-variant">ทำบ่อยที่สุด</p><span class="material-symbols-outlined text-primary text-[20px]" data-stat="top-icon">potted_plant</span></div>
+            <p class="mt-4 font-headline-lg text-[26px] md:text-[32px] leading-none text-on-surface" data-stat="top">–</p>
+            <p class="mt-3 text-[13px] text-on-surface-variant" data-stat="top-note">ยังไม่มีข้อมูล</p>
+          </div>
+          <div class="rounded-xl bg-surface-container-low border border-outline-variant/30 p-5">
+            <div class="flex items-start justify-between"><p class="font-label-sm text-[11px] uppercase tracking-[0.1em] text-on-surface-variant">ระดับฝีมือ</p><span class="material-symbols-outlined text-primary text-[20px]">school</span></div>
+            <p class="mt-4 font-headline-lg text-[26px] md:text-[32px] leading-none text-on-surface" data-skill-label>ปานกลาง</p>
+            <div class="mt-3 flex flex-wrap gap-1.5" id="skill-picker" role="group" aria-label="เปลี่ยนระดับฝีมือ"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- My works -->
+      <section id="works" class="dash-section space-y-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <p class="font-label-sm text-[11px] uppercase tracking-[0.12em] text-primary">ในคลังของคุณ</p>
+            <h2 class="mt-1 font-headline-md text-[26px] md:text-headline-md text-on-surface">ผลงานของฉัน</h2>
+          </div>
+          <div class="flex flex-wrap gap-2" id="works-filters" role="group" aria-label="กรองตามประเภทภาชนะ"></div>
+        </div>
+        <div id="works-error" class="hidden rounded-xl bg-error-container text-on-error-container px-5 py-4 text-[14px]"></div>
+        <div id="works-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5"></div>
+        <div id="works-empty" class="hidden rounded-xl border-2 border-dashed border-outline-variant/60 px-6 py-14 text-center">
+          <span class="material-symbols-outlined text-primary text-[40px]">emoji_objects</span>
+          <h3 class="mt-3 font-headline-md text-[22px] text-on-surface">ยังไม่มีแบบที่บันทึกไว้</h3>
+          <p class="mt-2 text-on-surface-variant max-w-md mx-auto">ออกแบบในสตูดิโอ 3D แล้วกด “บันทึก” แบบของคุณจะมาอยู่ที่นี่ เปิดกลับไปแก้ต่อได้ทุกเมื่อ</p>
+          <div class="mt-6 flex flex-wrap justify-center gap-3">
+            <a href="create.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm"><span class="material-symbols-outlined text-[18px]">auto_awesome</span>ให้ AI ช่วยออกแบบ</a>
+            <a href="studio.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm"><span class="material-symbols-outlined text-[18px]">view_in_ar</span>เปิดสตูดิโอ 3D</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI assistant -->
+      <section id="assistant" class="dash-section rounded-2xl bg-surface-container-low border border-outline-variant/30 p-6 md:p-8 space-y-5">
+        <div>
+          <p class="flex items-center gap-1.5 font-label-sm text-[11px] uppercase tracking-[0.12em] text-primary"><span class="material-symbols-outlined text-[16px]">auto_awesome</span>ผู้ช่วย AI ของสตูดิโอ</p>
+          <h2 class="mt-2 font-headline-md text-[24px] md:text-headline-md text-on-surface">แนะนำสำหรับระดับ<span data-skill-label>ปานกลาง</span></h2>
+          <p class="mt-2 text-on-surface-variant max-w-2xl" id="assistant-intro">พิมพ์ไอเดียงานเซรามิกที่อยากทำ AI จะเสนอแบบที่เหมาะกับฝีมือของคุณ</p>
+        </div>
+        <form id="assistant-form" class="flex flex-col sm:flex-row gap-3 bg-surface-container-lowest rounded-xl p-2 border border-outline-variant/40">
+          <label for="assistant-prompt" class="sr-only">ไอเดียงานเซรามิก</label>
+          <input id="assistant-prompt" type="text" maxlength="300" autocomplete="off" class="flex-1 border-0 bg-transparent focus:ring-0 px-3 py-2 text-on-surface placeholder:text-outline" placeholder="เช่น แจกันทรงสูงคอบิด เคลือบสีเขียวเซลาดอน" />
+          <button type="submit" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-surface-tint transition-colors font-label-sm text-label-sm whitespace-nowrap"><span class="material-symbols-outlined text-[18px]">view_in_ar</span>สร้างแบบ 3D</button>
+        </form>
+        <div>
+          <p class="font-label-sm text-[11px] uppercase tracking-[0.1em] text-on-surface-variant mb-2">ไอเดียยอดนิยม</p>
+          <div class="flex flex-wrap gap-2" id="assistant-ideas"></div>
+        </div>
+      </section>
+
+      <!-- Profile -->
+      <section id="profile" class="dash-section grid lg:grid-cols-[1fr_320px] gap-6">
+        <div class="rounded-2xl bg-surface-container-low border border-outline-variant/30 p-6 md:p-8">
+          <p class="font-label-sm text-[11px] uppercase tracking-[0.12em] text-on-surface-variant">บัญชี</p>
+          <h2 class="mt-1 font-headline-md text-[24px] md:text-headline-md text-on-surface">โปรไฟล์ของฉัน</h2>
+          <div class="mt-6 flex items-center gap-4">
+            <span id="profile-avatar" class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center text-[26px] font-semibold overflow-hidden">M</span>
+            <div class="min-w-0">
+              <p class="font-label-sm text-[18px] text-on-surface truncate" id="profile-name">–</p>
+              <p class="text-on-surface-variant text-[14px] truncate" id="profile-email">–</p>
+            </div>
+          </div>
+          <form id="profile-form" class="mt-8 grid sm:grid-cols-[1fr_auto] gap-3 items-end max-w-xl">
+            <div>
+              <label for="profile-display-name" class="block font-label-sm text-[13px] text-on-surface-variant mb-1.5">ชื่อที่แสดง</label>
+              <input id="profile-display-name" type="text" maxlength="60" required class="w-full rounded-lg border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-primary px-4 py-2.5" />
+            </div>
+            <button type="submit" id="profile-save" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-surface-tint transition-colors font-label-sm text-label-sm"><span class="material-symbols-outlined text-[18px]">save</span>บันทึกชื่อ</button>
+          </form>
+        </div>
+        <div class="rounded-2xl bg-surface-container-low border border-outline-variant/30 p-6 space-y-4">
+          <div>
+            <p class="font-label-sm text-[12px] text-on-surface-variant">เข้าสู่ระบบด้วย</p>
+            <p class="text-on-surface" id="profile-provider">–</p>
+          </div>
+          <div>
+            <p class="font-label-sm text-[12px] text-on-surface-variant">สมาชิกตั้งแต่</p>
+            <p class="text-on-surface" id="profile-since">–</p>
+          </div>
+          <button type="button" data-logout class="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-outline-variant text-on-surface hover:bg-error-container hover:text-error hover:border-error/40 transition-colors font-label-sm text-label-sm"><span class="material-symbols-outlined text-[18px]">logout</span>ออกจากระบบ</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="js/api-client.js"></script>
+<script src="js/main.js"></script>
+<script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

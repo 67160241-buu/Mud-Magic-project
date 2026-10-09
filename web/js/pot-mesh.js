@@ -238,6 +238,53 @@ function computeNormals(pos, idx) {
  * @returns {{positions:Float32Array, normals:Float32Array, colors:Float32Array,
  *   indices:Uint32Array, info:object, radiusAt:(f:number)=>number, heightUnits:number, bellyRadius:number}}
  */
+
+/* Shaped cross-sections (heart, star, flower...). Each outline is a closed
+   curve seen from above; it is turned into a radius-per-angle table (widest
+   point = 1) so it multiplies the profile radius exactly like the polygon
+   outline does. Angle 0 points at +z; keep vessels.js OUTLINES in sync. */
+const OUTLINE_BINS = 720;
+const polar = (f) => (t) => { const r = f(t); return [Math.sin(t) * r, Math.cos(t) * r]; };
+const OUTLINE_CURVES = {
+  heart: (t) => [
+    16 * Math.pow(Math.sin(t), 3),
+    13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t) + 1.5,
+  ],
+  star: polar((t) => 0.58 + 0.42 * Math.pow(Math.abs(Math.cos(2.5 * t)), 1.6)),
+  flower: polar((t) => 0.78 + 0.22 * Math.cos(6 * t)),
+  cloud: polar((t) => 0.84 + 0.16 * Math.abs(Math.cos(3.5 * t))),
+  clover: polar((t) => 0.5 + 0.5 * Math.pow(Math.abs(Math.cos(1.5 * t)), 0.8)),
+  teardrop: (t) => [0.75 * Math.sin(t) * Math.abs(Math.sin(t / 2)), -Math.cos(t) - 0.15],
+  leaf: (t) => [0.6 * Math.sin(t) * Math.pow(Math.abs(Math.sin(t)), 0.35), Math.cos(t)],
+  squircle: polar((t) => Math.pow(Math.pow(Math.abs(Math.cos(t)), 4) + Math.pow(Math.abs(Math.sin(t)), 4), -0.25)),
+};
+const outlineTables = {};
+function outlineRadius(id, side) {
+  let table = outlineTables[id];
+  if (!table) {
+    const curve = OUTLINE_CURVES[id];
+    table = new Float64Array(OUTLINE_BINS);
+    for (let k = 0; k < 8000; k++) {
+      const [x, y] = curve((k / 8000) * TAU);
+      let a = Math.atan2(x, y) / TAU;
+      if (a < 0) a += 1;
+      const bin = Math.min(OUTLINE_BINS - 1, Math.floor(a * OUTLINE_BINS));
+      table[bin] = Math.max(table[bin], Math.hypot(x, y));
+    }
+    let max = 0;
+    for (let i = 0; i < OUTLINE_BINS; i++) {
+      if (!table[i]) table[i] = (table[(i + OUTLINE_BINS - 1) % OUTLINE_BINS] + table[(i + 1) % OUTLINE_BINS]) / 2;
+      max = Math.max(max, table[i]);
+    }
+    for (let i = 0; i < OUTLINE_BINS; i++) table[i] = Math.max(table[i] / max, 0.05);
+    outlineTables[id] = table;
+  }
+  const f = (((side % 1) + 1) % 1) * OUTLINE_BINS;
+  const i = Math.floor(f) % OUTLINE_BINS;
+  const w = f - Math.floor(f);
+  return table[i] * (1 - w) + table[(i + 1) % OUTLINE_BINS] * w;
+}
+
 export function buildPotMesh(rawConfig, { rings = 112, sides = 112 } = {}) {
   const cfg = normalizeConfig(rawConfig);
   const preset = VESSELS[cfg.vessel];
@@ -283,7 +330,8 @@ export function buildPotMesh(rawConfig, { rings = 112, sides = 112 } = {}) {
   const accentRgb = hexToRgb(lab.accent);
   const pinch = cfg.texture === "pinch";
   const rough = cfg.surface === "rough";
-  const hasPoly = lab.polySides >= 3;
+  const shaped = lab.outline !== "round" && OUTLINE_CURVES[lab.outline] ? lab.outline : null;
+  const hasPoly = !shaped && lab.polySides >= 3;
   const polyN = lab.polySides;
 
   // PotterDraw polygon roundness constants (per-pot, not per-vertex).
@@ -298,6 +346,8 @@ export function buildPotMesh(rawConfig, { rings = 112, sides = 112 } = {}) {
   }
 
   const outerRad = new Float64Array(nOuter);
+  const shapeK = new Float64Array(nOuter).fill(1); // outline/polygon multiplier per vertex
+  const smoothRad = new Float64Array(nOuter); // outer radius before the rough-surface grain
   const yOff = new Float64Array(nOuter);
 
   const writeVertex = (index, phi, rad, yy, hx, hz) => {
@@ -355,12 +405,15 @@ export function buildPotMesh(rawConfig, { rings = 112, sides = 112 } = {}) {
 
       if (mod) rad = modulateRadius(rad, t, side, mod);
 
+      const preShape = rad;
+      if (shaped) rad *= outlineRadius(shaped, side);
       if (hasPoly) {
         let r = Math.cos(Math.PI / polyN) / Math.cos(wrap1(side * polyN) * (TAU / polyN) - Math.PI / polyN);
         if (lab.polyRound) r = 1 - Math.pow(1 - r, polyExp) - polyOffset;
         if (lab.polyBulge) r = Math.pow(Math.max(r, 0), 1 - lab.polyBulge);
         rad *= r;
       }
+      const kShape = preShape > 1e-9 ? rad / preShape : 1;
 
       const ne = neckEffect(cfg.neck, t, theta);
       rad = rad * ne.rm + rad * ne.add;
@@ -383,13 +436,15 @@ export function buildPotMesh(rawConfig, { rings = 112, sides = 112 } = {}) {
         const n2 = noise3(Math.sin(theta) * 3.7 + 31, t * 8.2, Math.cos(theta) * 3.7 + 17) - 0.5;
         rad *= 1 + 0.085 * n1 + 0.03 * n2;
       }
+      const idx = i * nS + j;
+      smoothRad[idx] = Math.max(rad, 0.0005);
       if (rough) {
         rad += (noise3(Math.sin(theta) * 20 + 2, t * 55, Math.cos(theta) * 20 + 6) - 0.5) * 0.004 * Rb * 8;
       }
 
       rad = Math.max(rad, 0.0005);
-      const idx = i * nS + j;
       outerRad[idx] = rad;
+      shapeK[idx] = kShape;
       yOff[idx] = dy * H;
       const phi = theta + lab.twist * t * TAU;
       writeVertex(idx, phi, rad, t * H + dy * H, hx, hz);
@@ -406,10 +461,15 @@ export function buildPotMesh(rawConfig, { rings = 112, sides = 112 } = {}) {
         const side = j / nS;
         const theta = side * TAU;
         const idx = i * nS + j;
+        // Offset the wall on the smooth, un-shaped profile, then re-apply the
+        // outline. Using the grainy outer radius makes the slope (and so the
+        // offset) jump ring to ring, which folds flat floors into dark spikes.
+        const k = shapeK[idx];
+        const base = (n) => smoothRad[n] / shapeK[n];
         let slope = 0;
-        if (i > 0 && i < nR - 1) slope = (outerRad[idx + nS] - outerRad[idx - nS]) / (zStep * 2);
+        if (i > 0 && i < nR - 1) slope = (base(idx + nS) - base(idx - nS)) / (zStep * 2);
         const a = Math.atan(slope);
-        const rad = Math.max(outerRad[idx] - wall / Math.cos(a), 0);
+        const rad = Math.max(base(idx) - wall / Math.cos(a), 0) * k;
         const phi = theta + lab.twist * t * TAU;
         writeVertex(innerBase + (i - iFirstInner) * nS + j, phi, rad, t * H + yOff[idx], hx, hz);
       }

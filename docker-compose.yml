@@ -48,5 +48,17 @@ services:
     depends_on:
       - api
 
+  adminer:
+    image: adminer:4
+    container_name: mudmagic_adminer
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:

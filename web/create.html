@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta content="width=device-width, initial-scale=1.0" name="viewport" />
 <title>ออกแบบด้วย AI — Mud Magic</title>
-<meta name="description" content="พิมพ์ไอเดีย เลือกระดับฝีมือ แล้วให้ AI แนะนำแบบเซรามิกที่ปั้นได้จริงครบทั้งแจกัน ชาม เหยือก จาน แก้วมัค และประติมากรรม เปรียบเทียบ ปรับแต่งใน 3D พร้อมปั้นอิสระ ดาวน์โหลดคู่มือ แล้วอวดผลงานจริงของคุณ" />
+<meta name="description" content="พิมพ์ไอเดีย เลือกระดับฝีมือ แล้วให้ AI แนะนำแบบเซรามิกที่ปั้นได้จริง ปรับแต่งใน 3D แล้วรับคู่มือปั้นพร้อมรายการวัสดุ" />
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect" />
 <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000&family=EB+Garamond:wght@400..700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 <link href="css/style.css" rel="stylesheet" />
 <script id="tailwind-config">
@@ -37,12 +37,12 @@
         borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
         spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
         fontFamily: {
-          "body-lg": ["Noto Sans Thai", "DM Sans", "sans-serif"],
-          "body-md": ["Noto Sans Thai", "DM Sans", "sans-serif"],
-          "label-sm": ["Noto Sans Thai", "DM Sans", "sans-serif"],
-          "headline-lg": ["EB Garamond", "Noto Serif Thai", "serif"],
-          "headline-md": ["EB Garamond", "Noto Serif Thai", "serif"],
-          "display-lg": ["EB Garamond", "Noto Serif Thai", "serif"],
+          "body-lg": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "body-md": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "label-sm": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "headline-lg": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "headline-md": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "display-lg": ["Prompt", "Noto Sans Thai", "sans-serif"],
         },
         fontSize: {
           "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
@@ -70,14 +70,25 @@
   .soft-shadow { box-shadow: 0 10px 40px -10px rgba(46, 41, 37, 0.04); }
   .design-card { transition: transform .4s cubic-bezier(.165,.84,.44,1), box-shadow .4s cubic-bezier(.165,.84,.44,1); }
   .design-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -10px rgba(46,41,37,.08); }
-  .step-title { font-family: "Prompt", "Noto Sans Thai", "DM Sans", sans-serif; font-weight: 600; font-size: clamp(28px, 2.5vw, 42px); line-height: 1.3; letter-spacing: -0.015em; color: #88452f; }
+  .step-title { font-family: "Prompt", "Noto Sans Thai", sans-serif; font-weight: 600; font-size: clamp(28px, 2.5vw, 42px); line-height: 1.3; letter-spacing: -0.015em; color: #88452f; }
   .step-sub { font-size: clamp(15px, 1.1vw, 18px); line-height: 1.65; color: #54433e; }
-  .card-title { font-family: "Prompt", "Noto Sans Thai", "DM Sans", sans-serif; font-weight: 600; font-size: clamp(18px, 1.35vw, 22px); line-height: 1.35; letter-spacing: -0.01em; }
+  .card-title { font-family: "Prompt", "Noto Sans Thai", sans-serif; font-weight: 600; font-size: clamp(18px, 1.35vw, 22px); line-height: 1.35; letter-spacing: -0.01em; }
   main .text-label-sm { font-size: 15px !important; line-height: 20px !important; }
   .tools-scroll { scrollbar-width: thin; scrollbar-color: #d9c1bb transparent; }
   .step-panel { animation: mm-step-in .35s cubic-bezier(.16,1,.3,1); }
   @keyframes mm-step-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .skill-card { border-color: #d9c1bb; background: #ffffff; }
+  .skill-card:hover { border-color: #86736d; }
+  .skill-card.is-active { border-color: #88452f; background: #fff4f1; box-shadow: 0 0 0 1px #88452f inset; }
+  .step-dot { width: 26px; height: 26px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  details > summary::-webkit-details-marker { display: none; }
+  @media print {
+    nav, #stepper, #draft-banner, .step-panel:not([data-step="finish"]), #finish-feedback, [data-noprint], #finish-save-btn, #finish-share-btn, #finish-back-btn, #finish-restart-btn, #finish-dashboard-link, #finish-download-btn, #finish-download-md-btn, #finish-print-btn, #finish-studio-link, #mm-toast { display: none !important; }
+    main { padding-top: 0 !important; }
+    body { background: #fff !important; }
+  }
 </style>
+<style>body { font-family: "Prompt", "Noto Sans Thai", sans-serif; }</style>
 </head>
 <body class="bg-background text-on-background font-body-md text-body-md antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
 
@@ -89,10 +100,9 @@
 <a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Showcase</a>
 <a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">Process</a>
 <a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="studio.html">Studio</a>
-<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="create.html">Create</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="create.html">Create with AI</a>
 </div>
 <div class="flex items-center gap-3">
-<span id="progress-label" class="hidden sm:block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"></span>
 <a href="login.html" id="mm-account-link" class="bg-primary text-on-primary font-label-sm text-label-sm px-5 py-2 rounded-full hover:bg-surface-tint transition-colors">Get Started</a>
 </div>
 </div>
@@ -111,116 +121,79 @@
 </div>
 </div>
 
-<main class="flex-grow pt-24 md:pt-24 pb-10 px-margin-mobile md:px-10 max-w-7xl mx-auto w-full">
+<main class="flex-grow pt-24 pb-10 px-margin-mobile md:px-10 max-w-7xl mx-auto w-full">
 
-<!-- ================= Step: ไอเดีย ================= -->
+<!-- Stepper: 4 steps, completed ones are clickable -->
+<ol id="stepper" class="flex items-center justify-center gap-1.5 sm:gap-3 mb-8 text-sm select-none" aria-label="ขั้นตอน"></ol>
+
+<!-- ================= Step 1: ไอเดีย + ระดับฝีมือ ================= -->
 <section class="step-panel" data-step="idea">
-<div class="text-center mb-9 max-w-2xl mx-auto space-y-3">
+<div class="text-center mb-8 max-w-2xl mx-auto space-y-3">
 <h1 class="step-title">อยากปั้นอะไรวันนี้?</h1>
-<p class="step-sub">อธิบายสิ่งที่อยากได้เป็นคำพูดง่ายๆ ไม่ต้องเป๊ะ — AI จะช่วยแปลงเป็นแบบร่างที่ปั้นได้จริง</p>
+<p class="step-sub">พิมพ์ไอเดียง่ายๆ เลือกระดับฝีมือ แล้ว AI จะคัดแบบที่ปั้นได้จริงมาให้</p>
 </div>
 
 <div class="max-w-2xl mx-auto">
-<textarea id="idea-prompt" rows="4" class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl p-5 text-base text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none soft-shadow" placeholder="เช่น แจกันทรงสูงสีเซจ หรือ ชามผิวหยาบสไตล์ญี่ปุ่น..."></textarea>
+<div class="relative">
+<textarea id="idea-prompt" rows="3" maxlength="500" class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl p-5 pr-14 text-base text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none soft-shadow" placeholder="เช่น แจกันทรงสูงสีเซจ หรือ ชามผิวหยาบสไตล์ญี่ปุ่น..."></textarea>
+<button id="idea-surprise-btn" type="button" title="สุ่มไอเดีย" aria-label="สุ่มไอเดีย" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-surface-container hover:bg-primary hover:text-on-primary text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined" style="font-size:20px;">casino</span>
+</button>
+</div>
 
-<p id="idea-vague-hint" class="hidden mt-3 text-sm text-amber-700 flex items-start gap-1.5">
+<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+<span id="idea-ai-status" class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-outline-variant"></span>กำลังตรวจสอบ AI...</span>
+<button id="idea-ai-refine" type="button" class="hidden inline-flex items-center gap-1.5 text-sm font-medium text-primary border border-primary/40 hover:bg-primary hover:text-on-primary rounded-full px-4 py-1.5 transition-colors disabled:opacity-60 disabled:cursor-wait">
+<span class="material-symbols-outlined" style="font-size:18px;">auto_awesome</span><span data-label>ให้ AI ช่วยเขียนไอเดีย</span>
+</button>
+</div>
+
+<p id="idea-vague-hint" class="hidden mt-2 text-sm text-amber-700 flex items-start gap-1.5">
 <span class="material-symbols-outlined" style="font-size:18px;">info</span>
-<span>คำอธิบายยังกว้างไปหน่อย ลองเลือกตัวอย่างด้านล่าง หรือเพิ่มรายละเอียด เช่น ทรง สี หรือผิวสัมผัส</span>
+<span>คำอธิบายยังกว้างไปหน่อย ลองเพิ่มรายละเอียด เช่น ทรง สี หรือผิวสัมผัส</span>
 </p>
 
-<div class="mt-6">
-<p class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider mb-1">ประเภทชิ้นงาน</p>
-<p class="text-xs text-on-surface-variant mb-3">ไม่ต้องเลือกก็ได้ — AI จะอ่านจากไอเดียของคุณ หรือเลือกทรงที่เหมาะให้เอง</p>
-<div id="idea-vessel-row" class="flex flex-wrap gap-2"></div>
+<div id="idea-suggestions" class="mt-3 flex flex-wrap gap-2"></div>
+
+<div id="idea-recent-wrap" class="hidden mt-4">
+<p class="text-xs text-on-surface-variant mb-2 flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:15px;">history</span> ไอเดียล่าสุดของคุณ</p>
+<div id="idea-recent" class="flex flex-wrap gap-2"></div>
 </div>
 
-<div class="mt-6">
-<p class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider mb-3">ตัวอย่างไอเดีย</p>
-<div id="idea-suggestions" class="flex flex-wrap gap-2"></div>
+<div class="mt-7">
+<p class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider mb-2">ประเภทชิ้นงาน <span class="normal-case tracking-normal text-on-surface-variant text-xs">(ไม่บังคับ)</span></p>
+<div id="idea-vessel-row" class="flex flex-nowrap gap-1.5 overflow-x-auto pb-1 tools-scroll"></div>
 </div>
 
-<div class="mt-8 bg-surface-container-low rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
-<div>
-<label for="student-count" class="text-sm font-medium text-on-background block">โหมดสตูดิโอ/โรงเรียน</label>
-<p class="text-xs text-on-surface-variant mt-0.5">สร้างแบบให้นักเรียนหลายคนพร้อมกันในครั้งเดียว</p>
+<div class="mt-7">
+<div class="flex items-baseline justify-between gap-3 mb-2">
+<p class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider">ระดับฝีมือของคุณ</p>
+<button id="skill-quiz-open" type="button" class="text-xs text-on-surface-variant hover:text-primary flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size:15px;">help</span> ไม่แน่ใจ? ทำแบบทดสอบ 3 ข้อ
+</button>
 </div>
-<div class="flex items-center gap-2">
-<span class="text-sm text-on-surface-variant">จำนวนคน</span>
-<input id="student-count" type="number" min="1" max="10" value="1" class="w-20 border border-outline-variant rounded-lg px-3 py-2 text-center bg-surface-container-lowest" />
+<div id="skill-row" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+<button type="button" data-skill="beginner" class="skill-card text-left rounded-xl border px-4 py-3 transition-colors">
+<span class="flex items-center gap-2 font-medium text-on-surface text-[15px] whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-full" style="background:#7C8872"></span>Beginner · มือใหม่</span>
+<span class="block text-xs text-on-surface-variant mt-1">รูปทรงพื้นฐาน ลวดลายไม่ซับซ้อน</span>
+</button>
+<button type="button" data-skill="intermediate" class="skill-card text-left rounded-xl border px-4 py-3 transition-colors">
+<span class="flex items-center gap-2 font-medium text-on-surface text-[15px] whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-full" style="background:#C18A52"></span>Intermediate · ปานกลาง</span>
+<span class="block text-xs text-on-surface-variant mt-1">ทรงซับซ้อนขึ้น ต่อหู ต่อคอได้</span>
+</button>
+<button type="button" data-skill="advanced" class="skill-card text-left rounded-xl border px-4 py-3 transition-colors">
+<span class="flex items-center gap-2 font-medium text-on-surface text-[15px] whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-full" style="background:#A65D45"></span>Advanced · มืออาชีพ</span>
+<span class="block text-xs text-on-surface-variant mt-1">ทรงท้าทาย รายละเอียดสูง</span>
+</button>
 </div>
 </div>
-<p id="student-mode-note" class="hidden mt-2 text-xs text-secondary">ระบบจะสร้างแบบแยกให้แต่ละคน คุณจะเห็นป้าย "นักเรียนคนที่ N" ในขั้นตอนถัดไป</p>
 
-<div class="mt-7 flex justify-end">
+<div class="mt-8 flex justify-end">
 <button id="idea-next-btn" disabled class="opacity-50 bg-primary text-on-primary px-7 py-3 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all flex items-center gap-2">
-ต่อไป <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
+<span class="material-symbols-outlined" style="font-size:20px;">auto_awesome</span> ให้ AI ออกแบบ
 </button>
 </div>
-</div>
-</section>
-
-<!-- ================= Step: ระดับฝีมือ (per skill_level mockup) ================= -->
-<section class="step-panel hidden" data-step="skill">
-<div class="text-center mb-9 max-w-2xl mx-auto space-y-3">
-<h1 class="step-title">คุณมีประสบการณ์ปั้นระดับไหน?</h1>
-<p class="step-sub">เลือกทักษะของคุณเพื่อให้เราสามารถแนะนำขั้นตอนการสร้างสรรค์ผลงานเซรามิกที่เหมาะสมที่สุดสำหรับคุณ</p>
-</div>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-<button data-skill="beginner" aria-label="Select Beginner Level" class="group relative flex flex-col bg-surface-container hover:bg-surface-container-low transition-all duration-300 rounded-xl overflow-hidden text-left border border-outline-variant/30 hover:border-outline-variant hover:shadow-lg hover:-translate-y-1">
-<div class="w-full h-36 lg:h-44 relative overflow-hidden bg-surface-variant/50">
-<img class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition-all duration-500 group-hover:scale-105" loading="lazy" alt="Hands gently molding a simple clay bowl on a pottery wheel" src="https://images.unsplash.com/photo-1565193286012-d6a35b5a58bd?auto=format&fit=crop&w=800&q=80" />
-<div class="absolute inset-0 bg-gradient-to-t from-surface-container to-transparent opacity-60"></div>
-</div>
-<div class="p-6 lg:p-7 flex flex-col gap-3">
-<div class="flex items-center gap-3">
-<span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color:#7C8872;"></span>
-<h2 class="card-title text-on-surface group-hover:text-primary transition-colors">Beginner</h2>
-</div>
-<p class="text-base text-on-surface-variant leading-relaxed">เพิ่งเริ่มปั้น รูปทรงพื้นฐาน ลวดลายไม่ซับซ้อน เหมาะสำหรับผู้ที่ต้องการเรียนรู้พื้นฐานและสนุกกับการสัมผัสดินเป็นครั้งแรก</p>
-</div>
-</button>
-
-<button data-skill="intermediate" aria-label="Select Intermediate Level" class="group relative flex flex-col bg-surface-container hover:bg-surface-container-low transition-all duration-300 rounded-xl overflow-hidden text-left border border-outline-variant/30 hover:border-outline-variant hover:shadow-lg hover:-translate-y-1">
-<div class="w-full h-36 lg:h-44 relative overflow-hidden bg-surface-variant/50">
-<img class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition-all duration-500 group-hover:scale-105" loading="lazy" alt="A partially finished ceramic vase with elegant curves on a workbench" src="https://images.unsplash.com/photo-1595351298020-038700609878?auto=format&fit=crop&w=800&q=80" />
-<div class="absolute inset-0 bg-gradient-to-t from-surface-container to-transparent opacity-60"></div>
-</div>
-<div class="p-6 lg:p-7 flex flex-col gap-3">
-<div class="flex items-center gap-3">
-<span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color:#C18A52;"></span>
-<h2 class="card-title text-on-surface group-hover:text-primary transition-colors">Intermediate</h2>
-</div>
-<p class="text-base text-on-surface-variant leading-relaxed">มีประสบการณ์บ้าง รูปทรงซับซ้อนขึ้น รายละเอียดมากขึ้น พร้อมท้าทายตัวเองด้วยเทคนิคใหม่ๆ และการขึ้นรูปที่ต้องการความแม่นยำ</p>
-</div>
-</button>
-
-<button data-skill="advanced" aria-label="Select Advanced Level" class="group relative flex flex-col bg-surface-container hover:bg-surface-container-low transition-all duration-300 rounded-xl overflow-hidden text-left border border-outline-variant/30 hover:border-outline-variant hover:shadow-lg hover:-translate-y-1">
-<div class="w-full h-36 lg:h-44 relative overflow-hidden bg-surface-variant/50">
-<img class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition-all duration-500 group-hover:scale-105" loading="lazy" alt="A masterfully crafted ceramic vessel with intricate details" src="https://images.unsplash.com/photo-1572853566597-b83cde546912?auto=format&fit=crop&w=800&q=80" />
-<div class="absolute inset-0 bg-gradient-to-t from-surface-container to-transparent opacity-60"></div>
-</div>
-<div class="p-6 lg:p-7 flex flex-col gap-3">
-<div class="flex items-center gap-3">
-<span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color:#A65D45;"></span>
-<h2 class="card-title text-on-surface group-hover:text-primary transition-colors">Advanced</h2>
-</div>
-<p class="text-base text-on-surface-variant leading-relaxed">ช่างฝีมือ รูปทรงซับซ้อน เทคนิคและรายละเอียดสูง เชี่ยวชาญการควบคุมเนื้อดินและน้ำยาเคลือบ เพื่อสร้างสรรค์ผลงานระดับมาสเตอร์พีซ</p>
-</div>
-</button>
-</div>
-
-<!-- Quiz link (per mockup) -->
-<div class="mt-7 text-center">
-<button id="skill-quiz-open" class="inline-flex items-center gap-2 font-label-sm text-label-sm text-tertiary hover:text-primary transition-colors group">
-<span class="material-symbols-outlined text-[18px] opacity-80 group-hover:opacity-100">help</span>
-<span class="uppercase tracking-wider">ไม่แน่ใจว่าตัวเองอยู่ระดับไหน? ทำแบบทดสอบสั้นๆ</span>
-<span class="material-symbols-outlined text-[18px] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">arrow_forward</span>
-</button>
-</div>
-
-<div class="mt-7 flex justify-start">
-<button id="skill-back-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
+<p id="idea-next-hint" class="mt-2 text-right text-xs text-on-surface-variant"></p>
 </div>
 
 <!-- Quiz modal -->
@@ -230,27 +203,40 @@
 <h3 class="card-title text-[20px] text-on-surface mb-1">แบบทดสอบสั้นๆ</h3>
 <p class="text-sm text-on-surface-variant mb-5">ตอบ 3 ข้อ เดี๋ยวเราแนะนำระดับที่เหมาะให้</p>
 <div id="skill-quiz-body" class="space-y-5"></div>
-<div id="skill-quiz-result" class="hidden mt-2 text-center">
+<div id="skill-quiz-result" class="hidden mt-5 text-center">
 <p class="text-sm text-on-surface-variant mb-2">ระดับที่แนะนำสำหรับคุณคือ</p>
 <p id="skill-quiz-result-level" class="card-title text-[22px] text-primary mb-4"></p>
 <button id="skill-quiz-apply" class="bg-primary text-on-primary px-7 py-3 rounded-full text-sm hover:bg-surface-tint">ใช้ระดับนี้</button>
 </div>
-<button id="skill-quiz-close" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined">close</span></button>
+<button id="skill-quiz-close" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface" aria-label="ปิด"><span class="material-symbols-outlined">close</span></button>
 </div>
 </div>
 </section>
 
-<!-- ================= Step: ผลลัพธ์ AI (per ai_results mockup) ================= -->
+<!-- ================= Step 2: เลือกแบบ (results + inline compare) ================= -->
 <section class="step-panel hidden" data-step="results">
-<div class="mb-7 text-center max-w-2xl mx-auto space-y-2">
-<div id="results-student-badge" class="hidden mb-3 inline-block text-xs bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full"></div>
-<h1 class="step-title">เราเลือกแบบที่เหมาะกับคุณมาให้แล้ว</h1>
+<div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+<div class="space-y-1.5">
+<h1 class="step-title">เลือกแบบที่ชอบ</h1>
 <p id="results-subtitle" class="step-sub"></p>
 </div>
+<div class="flex flex-wrap gap-2 shrink-0">
+<button id="results-edit-btn" class="px-4 py-2 rounded-full border border-outline-variant text-sm text-on-surface-variant hover:border-primary hover:text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined" style="font-size:17px;">edit</span> แก้ไอเดีย
+</button>
+<button id="results-regenerate-btn" class="px-4 py-2 rounded-full border border-outline-variant text-sm text-on-surface-variant hover:border-primary hover:text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined" style="font-size:17px;">refresh</span> สร้างชุดใหม่
+</button>
+</div>
+</div>
 
-<p id="results-empty" class="hidden text-sm text-on-surface-variant bg-surface-container-low rounded-xl p-5 max-w-xl mx-auto mb-8">ยังไม่มีแบบที่เหมาะกับระดับนี้ ลองปรับไอเดียให้เจาะจงขึ้น หรือย้อนกลับไปเลือกระดับฝีมือที่สูงขึ้น</p>
+<div id="results-remix-bar" class="hidden mb-4 bg-tertiary-fixed/60 text-on-tertiary-fixed-variant rounded-lg px-4 py-2.5 text-sm flex items-center justify-between gap-3">
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined" style="font-size:18px;">auto_fix_high</span><span id="results-remix-text"></span></span>
+<button id="results-remix-back" class="underline hover:text-primary shrink-0">กลับไปชุดเดิม</button>
+</div>
 
-<p id="results-notice" class="hidden text-xs text-on-surface-variant text-center max-w-xl mx-auto mb-8 flex items-center justify-center gap-1.5"></p>
+<p id="results-notice" class="hidden text-xs text-on-surface-variant mb-4 flex items-center gap-1.5"></p>
+<p id="results-empty" class="hidden text-sm text-on-surface-variant bg-surface-container-low rounded-xl p-5 max-w-xl mx-auto mb-8">ยังไม่มีแบบที่เหมาะกับระดับนี้ ลองแก้ไอเดียให้เจาะจงขึ้น หรือเลือกระดับฝีมือที่สูงขึ้น</p>
 
 <div id="results-loading" class="hidden text-center py-16 text-on-surface-variant">
 <span class="material-symbols-outlined animate-spin text-primary" style="font-size:36px;">progress_activity</span>
@@ -259,57 +245,34 @@
 
 <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
 
-<div class="mt-7 flex justify-center">
-<button id="results-regenerate-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-sm text-on-surface-variant hover:border-primary hover:text-primary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size:18px;">refresh</span> สร้างแบบใหม่
-</button>
+<!-- Inline compare (appears when 2+ designs are ticked) -->
+<div id="compare-wrap" class="hidden mt-10">
+<div class="flex items-center justify-between gap-3 mb-4">
+<h2 class="card-title text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">compare</span> เปรียบเทียบ</h2>
+<button id="compare-clear-btn" class="text-sm text-on-surface-variant hover:text-primary">ล้างที่เลือก</button>
 </div>
-
-<div id="results-stuck-banner" class="hidden mt-8 bg-surface-container-low rounded-xl p-6 max-w-xl mx-auto text-center">
-<p class="font-medium text-on-background mb-1">ยังไม่เจอแบบที่ใช่เลยเหรอ?</p>
-<p class="text-sm text-on-surface-variant mb-4">ลองวิธีเหล่านี้ดู แทนที่จะสุ่มใหม่ไปเรื่อยๆ</p>
-<div class="flex flex-wrap gap-3 justify-center">
-<button id="stuck-simplify-btn" class="px-4 py-2 rounded-full bg-surface-container-lowest border border-outline-variant text-sm hover:border-primary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขไอเดียให้เจาะจงขึ้น
-</button>
-<a href="index.html#showcase" class="px-4 py-2 rounded-full bg-surface-container-lowest border border-outline-variant text-sm hover:border-primary flex items-center gap-2">
-<span class="material-symbols-outlined" style="font-size:16px;">photo_library</span> ดูตัวอย่างผลงานจริงแทน
-</a>
+<div class="overflow-x-auto tools-scroll">
+<table id="compare-table" class="w-full min-w-[560px] text-sm bg-surface-container-lowest rounded-xl overflow-hidden border border-outline-variant/30"></table>
 </div>
-</div>
-
-<div class="mt-8 flex justify-between items-center">
-<button id="results-back-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
-<button id="results-compare-btn" disabled class="opacity-50 bg-primary text-on-primary px-7 py-3 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all flex items-center gap-2">
-เปรียบเทียบแบบที่เลือก (<span id="results-compare-count">0</span>) <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
-</button>
 </div>
 </section>
 
-<!-- ================= Step: เปรียบเทียบ (per compare mockup) ================= -->
-<section class="step-panel hidden" data-step="compare">
-<div class="text-center mb-7 space-y-2">
-<h1 class="step-title">เปรียบเทียบแบบที่คุณสนใจ</h1>
-<p class="step-sub max-w-2xl mx-auto">ดูความแตกต่างของรูปทรง เทคนิค และระดับความยาก เพื่อเลือกชิ้นงานที่ใช่ที่สุดสำหรับคุณ</p>
-</div>
-
-<div id="compare-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
-
-<div class="mt-8 flex justify-start">
-<button id="compare-back-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
-</div>
-</section>
-
-<!-- ================= Step: ปรับแต่ง (Studio editor embedded) ================= -->
+<!-- ================= Step 3: ปรับแต่ง (Studio editor embedded) ================= -->
 <section class="step-panel hidden" data-step="customize">
-<div class="mb-3">
+<div class="mb-3 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+<div>
 <h1 class="step-title">ปรับแต่งแบบของคุณ</h1>
-<p class="step-sub mt-1">ใช้เครื่องมือเดียวกับ Studio — แก้โปรไฟล์โค้ง ทรง ลวดลาย สีเคลือบ หรือปั้นอิสระด้วยมือ ระบบประเมินความยากให้ทันที</p>
+<p class="step-sub mt-1">แก้ทรง ลวดลาย สีเคลือบ หรือปั้นอิสระ ระบบประเมินความยากให้ทันที</p>
+</div>
+<button id="customize-next-top" class="hidden md:flex shrink-0 bg-primary text-on-primary px-6 py-2.5 rounded-full text-sm hover:bg-surface-tint items-center gap-2">
+พร้อมปั้นแล้ว <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+</button>
 </div>
 
 <div id="difficulty-banner" class="border rounded-lg px-4 py-2.5 mb-4 flex items-start gap-2 text-sm">
 <span data-banner-icon class="material-symbols-outlined" style="font-size:18px;">check_circle</span>
-<span data-banner-text class="pt-0.5"></span>
+<span data-banner-text class="pt-0.5 flex-1"></span>
+<button id="difficulty-ease-btn" class="hidden shrink-0 px-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-medium">ปรับให้ง่ายลง</button>
 </div>
 
 <iframe id="customize-frame" title="Studio — เครื่องมือออกแบบ 3D" class="w-full block rounded-xl border border-outline-variant/40 soft-shadow bg-background h-[calc(100vh-17rem)] min-h-[560px]"></iframe>
@@ -317,119 +280,121 @@
 <div class="mt-4 flex items-center justify-between gap-3">
 <button id="customize-back-btn" class="px-6 py-3 rounded-full border border-outline-variant text-base text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
 <button id="customize-next-btn" class="bg-primary text-on-primary px-7 py-3 rounded-full text-base hover:bg-surface-tint transition-all flex items-center gap-2">
-ยืนยันแบบ <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
+พร้อมปั้นแล้ว <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
 </button>
 </div>
 </section>
 
-<!-- ================= Step: ยืนยันและดาวน์โหลด ================= -->
-<section class="step-panel hidden" data-step="confirm">
-<div class="mb-6">
-<h1 class="step-title">ยืนยันแบบและดาวน์โหลดคู่มือ</h1>
-<p class="text-on-surface-variant">ตรวจสอบรายละเอียด แล้วดาวน์โหลดแบบร่างพร้อมคู่มือขั้นตอนปั้นเป็นไฟล์เดียว</p>
-</div>
-
-<div class="grid grid-cols-1 sm:grid-cols-[320px_1fr] gap-8">
-<img id="confirm-image" class="w-full aspect-square object-cover rounded-xl bg-surface-container-low soft-shadow" alt="แบบเซรามิกที่คุณยืนยัน" />
+<!-- ================= Step 4: พร้อมปั้น (summary, materials, checklist, save) ================= -->
+<section class="step-panel hidden" data-step="finish">
+<div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
 <div>
-<h2 id="confirm-name" class="card-title text-[22px] text-on-surface mb-3"></h2>
-<dl class="grid grid-cols-2 gap-4 text-sm mb-4">
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ประเภท</dt><dd id="confirm-summary-vessel" class="font-medium"></dd></div>
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ขนาด</dt><dd id="confirm-summary-size" class="font-medium"></dd></div>
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ปาก · ฐาน · หู</dt><dd id="confirm-summary-detail" class="font-medium"></dd></div>
-<div><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ดิน · เคลือบ · ผิว</dt><dd id="confirm-summary-material" class="font-medium"></dd></div>
-<div class="col-span-2"><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">ระดับความยาก</dt><dd id="confirm-summary-level" class="font-medium"></dd></div>
-<div class="col-span-2"><dt class="text-on-surface-variant uppercase font-label-sm text-label-sm mb-1">วิธีปั้นที่แนะนำ</dt><dd id="confirm-summary-method" class="font-medium"></dd></div>
-</dl>
-<p id="confirm-summary-reasons" class="text-xs text-on-surface-variant mb-6"></p>
-<h3 class="font-medium text-sm mb-2">ขั้นตอนการปั้น</h3>
-<ol id="confirm-steps" class="list-decimal list-inside text-sm text-on-surface-variant space-y-1.5"></ol>
+<h1 class="step-title">พร้อมปั้นแล้ว!</h1>
+<p class="step-sub mt-1">บันทึกแบบไว้ในบัญชี ดาวน์โหลดคู่มือ แล้วติ๊กขั้นตอนไปพร้อมกับการปั้นจริง</p>
+</div>
+<div class="flex flex-wrap gap-2 shrink-0">
+<button id="finish-save-btn" class="px-5 py-2.5 rounded-full bg-primary text-on-primary text-sm flex items-center gap-2 hover:bg-surface-tint">
+<span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span> <span data-label>บันทึกเข้าบัญชี</span>
+</button>
+<button id="finish-share-btn" class="px-5 py-2.5 rounded-full border border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
+<span class="material-symbols-outlined" style="font-size:18px;">link</span> คัดลอกลิงก์แชร์
+</button>
 </div>
 </div>
 
-<div class="mt-6 flex flex-wrap justify-center gap-3">
-<button id="confirm-download-btn" class="px-6 py-3 rounded-full bg-secondary text-on-secondary text-sm flex items-center gap-2 hover:opacity-90">
-<span class="material-symbols-outlined" style="font-size:18px;">download</span> ดาวน์โหลดคู่มือปั้น (ไฟล์เดียว)
+<div class="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-8">
+<!-- Left: image + specs + materials -->
+<div class="space-y-5">
+<img id="finish-image" class="w-full aspect-square object-contain rounded-xl bg-surface-container soft-shadow" alt="แบบเซรามิกของคุณ" />
+<div>
+<h2 id="finish-name" class="card-title text-on-surface"></h2>
+<p id="finish-level" class="text-sm mt-1"></p>
+</div>
+<dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm bg-surface-container-low rounded-xl p-4">
+<div><dt class="text-xs text-on-surface-variant mb-0.5">ขนาดหลังเผา</dt><dd id="finish-size" class="font-medium"></dd></div>
+<div><dt class="text-xs text-on-surface-variant mb-0.5">วิธีปั้น</dt><dd id="finish-method" class="font-medium"></dd></div>
+<div class="col-span-2"><dt class="text-xs text-on-surface-variant mb-0.5">ปาก · ฐาน · หู</dt><dd id="finish-detail" class="font-medium"></dd></div>
+<div class="col-span-2"><dt class="text-xs text-on-surface-variant mb-0.5">ดิน · เคลือบ · ผิว</dt><dd id="finish-material" class="font-medium"></dd></div>
+</dl>
+<div class="rounded-xl border border-outline-variant/40 p-4">
+<h3 class="font-medium text-sm mb-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-primary" style="font-size:18px;">inventory_2</span> เตรียมวัสดุ</h3>
+<ul class="text-sm space-y-2.5">
+<li class="flex justify-between gap-3"><span class="text-on-surface-variant">ดินที่ใช้ (โดยประมาณ)</span><span id="finish-clay-weight" class="font-medium text-right"></span></li>
+<li class="flex justify-between gap-3"><span class="text-on-surface-variant">ขนาดตอนปั้น (เผื่อหด ~12%)</span><span id="finish-wet-size" class="font-medium text-right"></span></li>
+<li class="flex justify-between gap-3"><span class="text-on-surface-variant">ความหนาผนัง</span><span id="finish-wall" class="font-medium text-right"></span></li>
+</ul>
+<p class="text-[11px] text-on-surface-variant mt-3">คำนวณจากรูปทรงในแบบ รวมเผื่อดินที่ถูกตัดแต่งแล้ว ควรเตรียมเกินไว้เล็กน้อย</p>
+</div>
+<p id="finish-notes" class="text-xs text-on-surface-variant"></p>
+</div>
+
+<!-- Right: checklist + downloads + post-build -->
+<div class="space-y-6">
+<div class="rounded-xl bg-surface-container-lowest border border-outline-variant/30 soft-shadow p-5 md:p-6">
+<div class="flex items-center justify-between gap-3 mb-2">
+<h3 class="card-title text-on-surface">ขั้นตอนการปั้น</h3>
+<span id="finish-progress-text" class="text-sm text-on-surface-variant"></span>
+</div>
+<div class="h-1.5 rounded-full bg-surface-container mb-4 overflow-hidden"><div id="finish-progress-bar" class="h-full bg-secondary transition-all duration-300" style="width:0%"></div></div>
+<ol id="finish-steps" class="space-y-1"></ol>
+</div>
+
+<div class="flex flex-wrap gap-2">
+<button id="finish-download-btn" class="px-5 py-2.5 rounded-full bg-secondary text-on-secondary text-sm flex items-center gap-2 hover:opacity-90">
+<span class="material-symbols-outlined" style="font-size:18px;">download</span> ดาวน์โหลดคู่มือ (รูปภาพ)
 </button>
-<button id="confirm-download-md-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
-<span class="material-symbols-outlined" style="font-size:18px;">description</span> คู่มือแบบข้อความ (.md)
+<button id="finish-download-md-btn" class="px-5 py-2.5 rounded-full border border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
+<span class="material-symbols-outlined" style="font-size:18px;">description</span> คู่มือแบบข้อความ
 </button>
-<a id="confirm-studio-link" href="studio.html" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
-<span class="material-symbols-outlined" style="font-size:18px;">open_in_new</span> เปิดใน Studio เพื่อปรับต่อ
+<button id="finish-print-btn" class="px-5 py-2.5 rounded-full border border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
+<span class="material-symbols-outlined" style="font-size:18px;">print</span> พิมพ์
+</button>
+<a id="finish-studio-link" href="studio.html" class="px-5 py-2.5 rounded-full border border-outline-variant text-on-surface-variant text-sm flex items-center gap-2 hover:border-primary hover:text-primary">
+<span class="material-symbols-outlined" style="font-size:18px;">open_in_new</span> เปิดใน 3D Studio
 </a>
 </div>
 
-<div class="mt-8 flex justify-between">
-<button id="confirm-back-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
-<button id="confirm-next-btn" class="bg-primary text-on-primary px-7 py-3 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all flex items-center gap-2">
-เริ่มลงมือปั้น <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
-</button>
-</div>
-</section>
-
-<!-- ================= Step: ลงมือปั้น (offline) ================= -->
-<section class="step-panel hidden" data-step="build">
-<div class="mb-8 max-w-2xl">
-<h1 class="step-title">ลงมือปั้นได้เลย</h1>
-<p class="text-on-surface-variant">ทำตามคู่มือที่ดาวน์โหลดไว้ ขั้นตอนนี้ไม่มีการตอบสนองจากระบบ — กลับมากดปุ่มด้านล่างเมื่อปั้นเสร็จแล้ว</p>
-</div>
-
-<ul id="build-steps" class="bg-surface-container-low rounded-xl p-6 divide-y divide-outline-variant/20 max-w-2xl"></ul>
-
-<div class="mt-10 flex justify-between max-w-2xl">
-<button id="build-back-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
-<button id="build-next-btn" class="bg-primary text-on-primary px-7 py-3 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all flex items-center gap-2">
-ปั้นเสร็จแล้ว <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
-</button>
-</div>
-</section>
-
-<!-- ================= Step: ฟีดแบ็ก ================= -->
-<section class="step-panel hidden" data-step="feedback">
-<div class="mb-8 max-w-2xl">
-<h1 class="step-title">ผลงานจริงเป็นยังไงบ้าง?</h1>
-<p class="text-on-surface-variant">อัปโหลดรูปผลงานจริง แล้วให้คะแนนว่าใกล้เคียงกับแบบที่ AI แนะนำแค่ไหน — ช่วยให้ระบบแนะนำแม่นขึ้นในครั้งถัดไป</p>
-</div>
-
-<div class="max-w-2xl">
+<!-- Optional: share the real piece -->
+<details id="finish-feedback" class="rounded-xl bg-surface-container-low p-5 group">
+<summary class="cursor-pointer list-none flex items-center justify-between gap-3">
+<span class="font-medium flex items-center gap-2"><span class="material-symbols-outlined text-primary">add_a_photo</span> ปั้นเสร็จแล้ว? อวดผลงานจริง</span>
+<span class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<div class="mt-4 grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-5">
 <label for="feedback-photo-input" class="block cursor-pointer">
-<div class="border-2 border-dashed border-outline-variant rounded-xl aspect-video flex items-center justify-center overflow-hidden bg-surface-container-low relative">
+<div class="border-2 border-dashed border-outline-variant rounded-xl aspect-square flex items-center justify-center overflow-hidden bg-surface-container-lowest">
 <img id="feedback-photo-preview" class="hidden w-full h-full object-cover" alt="รูปผลงานจริงที่อัปโหลด" />
-<div id="feedback-photo-placeholder" class="text-center text-on-surface-variant">
-<span class="material-symbols-outlined" style="font-size:36px;">add_a_photo</span>
-<p class="text-sm mt-2">แตะเพื่ออัปโหลดรูปผลงานจริง</p>
+<div id="feedback-photo-placeholder" class="text-center text-on-surface-variant px-3">
+<span class="material-symbols-outlined" style="font-size:30px;">add_a_photo</span>
+<p class="text-xs mt-1">แตะเพื่ออัปโหลดรูป</p>
 </div>
 </div>
 </label>
 <input id="feedback-photo-input" type="file" accept="image/*" class="hidden" />
-
-<div class="mt-7">
-<p class="text-sm font-medium mb-2">ใกล้เคียงกับแบบที่ AI แนะนำแค่ไหน?</p>
+<div>
+<p class="text-sm font-medium mb-1.5">ใกล้เคียงกับแบบแค่ไหน?</p>
 <div id="feedback-stars" class="flex gap-1"></div>
-</div>
-
-<label class="mt-7 flex items-center gap-3 text-sm text-on-surface-variant">
+<label class="mt-4 flex items-center gap-2.5 text-sm text-on-surface-variant">
 <input id="feedback-publish" type="checkbox" checked class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary" />
-อนุญาตให้เผยแพร่ผลงานนี้ในคลังผลงานหน้าแรก
+เผยแพร่ในคลังผลงานหน้าแรก
 </label>
-
-<div class="mt-10 flex justify-between">
-<button id="feedback-back-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ย้อนกลับ</button>
-<button id="feedback-submit-btn" class="bg-primary text-on-primary px-7 py-3 rounded-full font-label-sm text-label-sm hover:bg-surface-tint transition-all flex items-center gap-2">
-บันทึกฟีดแบ็ก <span class="material-symbols-outlined" style="font-size:20px;">check</span>
+<button id="feedback-submit-btn" class="mt-4 bg-primary text-on-primary px-6 py-2.5 rounded-full text-sm hover:bg-surface-tint flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size:18px;">send</span> ส่งผลงาน
 </button>
 </div>
 </div>
-</section>
+</details>
+</div>
+</div>
 
-<!-- ================= Step: เสร็จสิ้น ================= -->
-<section class="step-panel hidden text-center py-16" data-step="done">
-<span class="material-symbols-outlined text-primary" style="font-size:56px;">celebration</span>
-<h1 class="step-title mt-4 mb-2">เสร็จสิ้น!</h1>
-<p class="text-on-surface-variant mb-10">คุณออกแบบและบันทึกฟีดแบ็กครบ <span id="done-count" class="font-medium text-on-background"></span> ชิ้นงานแล้ว ขอบคุณที่ร่วมพัฒนา Mud Magic</p>
-<div class="flex items-center justify-center gap-3 flex-wrap">
-<button id="done-restart-btn" class="px-6 py-3 rounded-full border text-base border-outline-variant text-on-surface-variant hover:border-outline">ออกแบบชิ้นใหม่</button>
-<a href="index.html" class="px-6 py-3 rounded-full bg-primary text-on-primary hover:bg-surface-tint">กลับหน้าแรก</a>
+<div class="mt-10 flex flex-wrap justify-between gap-3">
+<button id="finish-back-btn" class="px-6 py-3 rounded-full border border-outline-variant text-base text-on-surface-variant hover:border-outline">ย้อนกลับไปปรับแต่ง</button>
+<div class="flex flex-wrap gap-3">
+<a href="dashboard.html" id="finish-dashboard-link" class="hidden px-6 py-3 rounded-full border border-outline-variant text-base text-on-surface-variant hover:border-primary hover:text-primary">ดูผลงานของฉัน</a>
+<button id="finish-restart-btn" class="px-6 py-3 rounded-full bg-surface-container text-base text-on-surface hover:bg-surface-container-high flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size:20px;">add</span> ออกแบบชิ้นใหม่
+</button>
+</div>
 </div>
 </section>
 
@@ -437,6 +402,6 @@
 
 <script src="js/api-client.js"></script>
 <script src="js/main.js"></script>
-<script type="module" src="js/journey.js?v=8"></script>
+<script type="module" src="js/journey.js?v=17"></script>
 </body>
 </html>

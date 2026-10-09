@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas, security
@@ -45,7 +46,13 @@ def _issue_tokens(user: models.User, db: Session) -> schemas.TokenPair:
 
 @router.post("/login", response_model=schemas.TokenPair)
 def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == payload.username).first()
+    # Accept either the username or the email address as the identifier.
+    ident = payload.username.strip()
+    user = (
+        db.query(models.User)
+        .filter(or_(models.User.username == ident, func.lower(models.User.email) == ident.lower()))
+        .first()
+    )
     if user is None or not security.verify_password(payload.password, user.hashed_password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid username or password")
     if not user.is_active:

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # the front end then falls back to its offline keyword generator.
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
-    openai_timeout_seconds: float = 30.0
+    openai_timeout_seconds: float = 60.0
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

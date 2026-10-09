@@ -6,7 +6,7 @@
 <title>เข้าสู่ระบบ — Mud Magic</title>
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 <link href="css/style.css" rel="stylesheet" />
 <script id="tailwind-config">
@@ -34,8 +34,8 @@
         borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
         spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
         fontFamily: {
-          "body-lg": ["Noto Sans Thai", "DM Sans", "sans-serif"], "display-lg": ["Noto Serif Thai", "EB Garamond", "serif"], "headline-md": ["Noto Serif Thai", "EB Garamond", "serif"],
-          "display-lg-mobile": ["Noto Serif Thai", "EB Garamond", "serif"], "body-md": ["Noto Sans Thai", "DM Sans", "sans-serif"], "headline-lg": ["Noto Serif Thai", "EB Garamond", "serif"], "label-sm": ["Noto Sans Thai", "DM Sans", "sans-serif"],
+          "body-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "display-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "headline-md": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "display-lg-mobile": ["Prompt", "Noto Sans Thai", "sans-serif"], "body-md": ["Prompt", "Noto Sans Thai", "sans-serif"], "headline-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "label-sm": ["Prompt", "Noto Sans Thai", "sans-serif"],
         },
         fontSize: {
           "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
@@ -50,6 +50,7 @@
     },
   };
 </script>
+<style>body { font-family: "Prompt", "Noto Sans Thai", sans-serif; }</style>
 </head>
 <body class="bg-background text-on-background min-h-screen flex antialiased">
 
@@ -64,56 +65,67 @@
 </div>
 
 <!-- Right Side: Login Form -->
-<div class="w-full lg:w-[55%] flex flex-col justify-center px-6 sm:px-margin-mobile lg:px-margin-desktop py-12">
+<div class="w-full lg:w-[55%] flex flex-col justify-center px-6 sm:px-margin-mobile lg:px-margin-desktop py-8">
 <div class="max-w-[440px] mx-auto w-full">
 
-<div class="mb-10 text-center lg:text-left">
+<div class="mb-6 text-center lg:text-left">
 <a href="index.html" class="font-headline-lg text-headline-lg text-primary tracking-tight mb-2 block">Mud Magic <span class="text-outline font-light px-2">×</span> สตูดิโอ</a>
-<p class="font-body-md text-body-md text-on-surface-variant">เข้าสู่ระบบเพื่อไปต่อในเส้นทางสร้างสรรค์ของคุณ</p>
+<p class="font-body-md text-body-md text-on-surface-variant" id="auth-subtitle">เข้าสู่ระบบเพื่อไปต่อในเส้นทางสร้างสรรค์ของคุณ</p>
 </div>
 
-<form id="login-form" class="space-y-6" novalidate>
-<div class="space-y-4">
+<div class="grid grid-cols-2 gap-1 p-1 mb-6 bg-surface-container-low rounded" role="tablist">
+<button type="button" role="tab" data-auth-mode="login" class="py-2 rounded font-label-sm text-label-sm transition-colors">เข้าสู่ระบบ</button>
+<button type="button" role="tab" data-auth-mode="signup" class="py-2 rounded font-label-sm text-label-sm transition-colors">สมัครบัญชี</button>
+</div>
+
+<form id="login-form" class="space-y-5" novalidate>
+<div class="space-y-3">
+<div data-signup-only class="hidden">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase" for="display-name">ชื่อที่แสดง</label>
+<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-2.5 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="display-name" placeholder="เช่น ช่างปั้นมือใหม่" type="text" autocomplete="nickname" maxlength="50" />
+<p class="text-error text-xs mt-1 hidden" data-error-for="display-name">กรุณากรอกชื่อที่แสดง</p>
+</div>
 <div>
 <label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase" for="email">อีเมล</label>
-<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-3 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="email" placeholder="you@example.com" type="email" autocomplete="email" />
+<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-2.5 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="email" placeholder="you@example.com" type="email" autocomplete="email" />
 <p class="text-error text-xs mt-1 hidden" data-error-for="email">กรุณากรอกอีเมลให้ถูกต้อง</p>
 </div>
 <div>
 <label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase" for="password">รหัสผ่าน</label>
-<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-3 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="password" placeholder="••••••••" type="password" autocomplete="current-password" />
+<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-2.5 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="password" placeholder="••••••••" type="password" autocomplete="current-password" />
 <p class="text-error text-xs mt-1 hidden" data-error-for="password">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</p>
+</div>
+<div data-signup-only class="hidden">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase" for="password-confirm">ยืนยันรหัสผ่าน</label>
+<input class="w-full bg-surface-container-lowest border border-outline rounded text-on-background font-body-md text-body-md px-4 py-2.5 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors" id="password-confirm" placeholder="••••••••" type="password" autocomplete="new-password" />
+<p class="text-error text-xs mt-1 hidden" data-error-for="password-confirm">รหัสผ่านไม่ตรงกัน</p>
 </div>
 </div>
 
-<button id="login-submit" class="w-full bg-primary text-on-primary font-label-sm text-label-sm uppercase py-4 rounded hover:bg-surface-tint transition-colors shadow-sm mt-8 flex items-center justify-center gap-2" type="submit">
-<span id="login-submit-label">ดำเนินการต่อ</span>
+<button id="login-submit" class="w-full bg-primary text-on-primary font-label-sm text-label-sm uppercase py-3.5 rounded hover:bg-surface-tint transition-colors shadow-sm mt-6 flex items-center justify-center gap-2" type="submit">
+<span id="login-submit-label">เข้าสู่ระบบ</span>
 <span class="material-symbols-outlined mm-breathe hidden" id="login-spinner" style="font-size:18px;">autorenew</span>
 </button>
 
-<div class="flex items-center my-8">
+<div class="flex items-center my-5">
 <div class="flex-grow border-t border-outline-variant"></div>
 <span class="px-4 font-label-sm text-label-sm text-outline uppercase">หรือ</span>
 <div class="flex-grow border-t border-outline-variant"></div>
 </div>
 
 <div class="space-y-3">
-<button class="w-full flex items-center justify-center gap-3 bg-surface-container-lowest border border-outline text-on-background font-body-md text-body-md py-3 rounded hover:bg-surface-container-low transition-colors" type="button" data-provider="Google">
+<button class="w-full flex items-center justify-center gap-3 bg-surface-container-lowest border border-outline text-on-background font-body-md text-body-md py-2.5 rounded hover:bg-surface-container-low transition-colors" type="button" data-provider="Google" id="google-signin">
 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
 ดำเนินการต่อด้วย Google
-</button>
-<button class="w-full flex items-center justify-center gap-3 bg-surface-container-lowest border border-outline text-on-background font-body-md text-body-md py-3 rounded hover:bg-surface-container-low transition-colors" type="button" data-provider="Apple">
-<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.126 3.805 3.076 1.519-.05 2.09-.984 3.935-.984 1.818 0 2.368.984 3.961.954 1.658-.027 2.685-1.503 3.668-2.956 1.139-1.688 1.608-3.32 1.633-3.411-.038-.012-3.193-1.228-3.23-4.887-.026-3.056 2.494-4.532 2.608-4.606-1.423-2.09-3.636-2.37-4.42-2.417-1.745-.16-3.415 1.04-4.225 1.04-.81 0-2.167-1.04-3.535-1.04z"></path><path d="M14.945 4.341c.823-1 1.378-2.384 1.228-3.76-1.183.05-2.62.793-3.47 1.785-.758.88-1.423 2.298-1.24 3.638 1.312.102 2.66-.7 3.482-1.663z"></path></svg>
-ดำเนินการต่อด้วย Apple
 </button>
 </div>
 </form>
 
-<div class="mt-12 text-center">
+<div class="mt-6 text-center">
 <p class="font-body-md text-body-md text-on-surface-variant mb-2">
-ยังไม่มีบัญชีใช่ไหม? <a class="text-primary hover:text-surface-tint font-medium underline decoration-primary/30 underline-offset-4 transition-colors" href="studio.html">สร้างมัคใบแรกของคุณได้ฟรี</a>
+<span id="auth-switch-text">ยังไม่มีบัญชีใช่ไหม?</span> <a id="auth-switch" class="text-primary hover:text-surface-tint font-medium underline decoration-primary/30 underline-offset-4 transition-colors" href="?mode=signup">สมัครบัญชีฟรี</a>
 </p>
-<p class="font-label-sm text-label-sm text-outline uppercase tracking-wider">ไม่จำเป็นต้องมีพื้นฐานการออกแบบมาก่อน</p>
+<p data-login-only class="font-label-sm text-label-sm text-outline uppercase tracking-wider">ไม่จำเป็นต้องมีพื้นฐานการออกแบบมาก่อน</p>
 </div>
 </div>
 </div>
@@ -121,17 +133,42 @@
 <script src="js/api-client.js"></script>
 <script src="js/main.js"></script>
 <script>
-  // Real auth flow against the Project API (see ../api). The form only
-  // collects an email, so we derive a username and try register-then-login
-  // (see api-client.js for the exact contract) — a single field acts as
-  // both sign-up and sign-in.
+  // Sign-in and sign-up against Firebase Authentication (see js/api-client.js).
+  // One form, two modes: "login" only signs in to an existing account;
+  // "signup" adds a display name + password confirmation and creates one.
   (function () {
     const form = document.getElementById("login-form");
     const email = document.getElementById("email");
     const password = document.getElementById("password");
+    const displayName = document.getElementById("display-name");
+    const confirm = document.getElementById("password-confirm");
     const submitBtn = document.getElementById("login-submit");
     const submitLabel = document.getElementById("login-submit-label");
     const spinner = document.getElementById("login-spinner");
+    const subtitle = document.getElementById("auth-subtitle");
+    const switchText = document.getElementById("auth-switch-text");
+    const switchLink = document.getElementById("auth-switch");
+
+    const TEXT = {
+      login: {
+        subtitle: "เข้าสู่ระบบเพื่อไปต่อในเส้นทางสร้างสรรค์ของคุณ",
+        submit: "เข้าสู่ระบบ",
+        busy: "กำลังเข้าสู่ระบบ",
+        switchText: "ยังไม่มีบัญชีใช่ไหม?",
+        switchLink: "สมัครบัญชีฟรี",
+      },
+      signup: {
+        subtitle: "สร้างบัญชีเพื่อบันทึกแบบเซรามิกของคุณไว้ใช้ได้ทุกเครื่อง",
+        submit: "สมัครบัญชี",
+        busy: "กำลังสร้างบัญชี",
+        switchText: "มีบัญชีอยู่แล้ว?",
+        switchLink: "เข้าสู่ระบบ",
+      },
+    };
+    let mode = new URLSearchParams(location.search).get("mode") === "signup" ? "signup" : "login";
+    // Where to go after signing in: ?next=dashboard.html (same-site page names only).
+    const nextParam = new URLSearchParams(location.search).get("next") || "";
+    const NEXT_PAGE = /^[a-z0-9_-]+\.html$/i.test(nextParam) ? nextParam : "index.html";
 
     function setError(input, show) {
       const msg = document.querySelector(`[data-error-for="${input.id}"]`);
@@ -139,40 +176,92 @@
       if (msg) msg.classList.toggle("hidden", !show);
     }
 
+    function setMode(next) {
+      mode = next;
+      const t = TEXT[mode];
+      document.querySelectorAll("[data-signup-only]").forEach((el) => el.classList.toggle("hidden", mode !== "signup"));
+      document.querySelectorAll("[data-login-only]").forEach((el) => el.classList.toggle("hidden", mode === "signup"));
+      document.querySelectorAll("[data-auth-mode]").forEach((btn) => {
+        const active = btn.dataset.authMode === mode;
+        btn.setAttribute("aria-selected", String(active));
+        btn.classList.toggle("bg-surface-container-lowest", active);
+        btn.classList.toggle("text-primary", active);
+        btn.classList.toggle("shadow-sm", active);
+        btn.classList.toggle("text-on-surface-variant", !active);
+      });
+      password.setAttribute("autocomplete", mode === "signup" ? "new-password" : "current-password");
+      subtitle.textContent = t.subtitle;
+      submitLabel.textContent = t.submit;
+      switchText.textContent = t.switchText;
+      switchLink.textContent = t.switchLink;
+      switchLink.setAttribute("href", mode === "signup" ? "?mode=login" : "?mode=signup");
+      [displayName, confirm].forEach((el) => setError(el, false));
+    }
+
+    document.querySelectorAll("[data-auth-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => setMode(btn.dataset.authMode));
+    });
+    switchLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      setMode(mode === "signup" ? "login" : "signup");
+    });
+    setMode(mode);
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
       const passwordValid = password.value.length >= 6;
       setError(email, !emailValid);
       setError(password, !passwordValid);
-      if (!emailValid || !passwordValid) return;
+      let valid = emailValid && passwordValid;
+      if (mode === "signup") {
+        const nameValid = displayName.value.trim().length > 0;
+        const confirmValid = confirm.value === password.value;
+        setError(displayName, !nameValid);
+        setError(confirm, !confirmValid);
+        valid = valid && nameValid && confirmValid;
+      }
+      if (!valid) return;
 
       submitBtn.disabled = true;
-      submitLabel.textContent = "กำลังเข้าสู่ระบบ";
+      submitLabel.textContent = TEXT[mode].busy;
       spinner.classList.remove("hidden");
 
       try {
-        const user = await window.MudMagicAPI.registerOrLogin(email.value.trim(), password.value);
-        window.MudMagic?.showToast(`เข้าสู่ระบบในชื่อ ${user.username} แล้ว`, { icon: "check_circle" });
+        const api = window.MudMagicAPI;
+        const user =
+          mode === "signup"
+            ? await api.register(email.value.trim(), password.value, displayName.value)
+            : await api.login(email.value.trim(), password.value);
+        const done = mode === "signup" ? "สร้างบัญชีแล้ว ยินดีต้อนรับ" : "เข้าสู่ระบบในชื่อ";
+        window.MudMagic?.showToast(`${done} ${user.username}`, { icon: "check_circle" });
         window.setTimeout(() => {
-          window.location.href = "studio.html";
+          window.location.href = NEXT_PAGE;
         }, 500);
       } catch (err) {
         submitBtn.disabled = false;
-        submitLabel.textContent = "ดำเนินการต่อ";
+        submitLabel.textContent = TEXT[mode].submit;
         spinner.classList.add("hidden");
-        const message =
-          err.message === "Failed to fetch"
-            ? "เชื่อมต่อ API ไม่ได้ — ตรวจสอบว่า backend กำลังทำงานอยู่ (ดู README)"
-            : err.message || "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
-        window.MudMagic?.showToast(message, { icon: "error" });
+        window.MudMagic?.showToast(err.message || "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง", { icon: "error" });
       }
     });
 
-    document.querySelectorAll("[data-provider]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        window.MudMagic?.showToast(`การเข้าสู่ระบบด้วย ${btn.dataset.provider} ยังใช้งานไม่ได้ในเดโมนี้`, { icon: "info" });
-      });
+    // Google works for both tabs: Firebase creates the account on first use.
+    const googleBtn = document.getElementById("google-signin");
+    googleBtn.addEventListener("click", async () => {
+      googleBtn.disabled = true;
+      try {
+        const user = await window.MudMagicAPI.loginWithGoogle();
+        if (!user) return; // popup closed
+        window.MudMagic?.showToast(`เข้าสู่ระบบในชื่อ ${user.username}`, { icon: "check_circle" });
+        window.setTimeout(() => {
+          window.location.href = NEXT_PAGE;
+        }, 500);
+      } catch (err) {
+        window.MudMagic?.showToast(err.message || "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง", { icon: "error" });
+      } finally {
+        googleBtn.disabled = false;
+      }
     });
   })();
 </script>

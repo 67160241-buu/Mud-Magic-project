@@ -156,7 +156,7 @@ export function createProfileEditor(canvas, handlers = {}) {
     });
 
     ctx.fillStyle = "rgba(84,67,62,0.7)";
-    ctx.font = "11px 'Noto Sans Thai', 'DM Sans', sans-serif";
+    ctx.font = "11px 'Prompt', 'Noto Sans Thai', sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("ปากภาชนะ", 8, 12);
     ctx.fillText("ก้นภาชนะ", 8, H - 5);

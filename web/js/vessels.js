@@ -74,6 +74,19 @@ export const PATTERNS = [
   { id: "wobble", label: "ขอบหยัก", mod: { ...DEFAULT_MODULATION, scallops: 6, scallopDepth: 0.05, ripples: 5, rippleDepth: 0.015 } },
 ];
 
+/** Cross-section outlines beyond circle/ellipse/polygon. */
+export const OUTLINES = {
+  round: { label: "กลม" },
+  heart: { label: "หัวใจ" },
+  star: { label: "ดาว" },
+  flower: { label: "ดอกไม้" },
+  cloud: { label: "ก้อนเมฆ" },
+  clover: { label: "ใบโคลเวอร์" },
+  teardrop: { label: "หยดน้ำ" },
+  leaf: { label: "ใบไม้" },
+  squircle: { label: "เหลี่ยมมน" },
+};
+
 export const COLOR_PATTERNS = {
   none: { label: "สีเดียว" },
   stripes: { label: "ลายทาง" },
@@ -120,12 +133,35 @@ export const VESSELS = {
   },
   sculpture: {
     label: "ประติมากรรม", en: "Sculpture", icon: "architecture",
-    nodes: [[0.34, 0], [0.72, 0.1], [1.0, 0.36], [0.78, 0.6], [0.88, 0.78], [0.55, 0.92], [0.1, 1.0]],
+    nodes: [[0.62, 0], [0.8, 0.08], [0.95, 0.3], [1.0, 0.5], [0.8, 0.75], [0.42, 0.92], [0.06, 1.0]],
     height: [12, 45, 26], belly: [8, 26, 14], wall: [0.5, 1.5, 0.7],
     handle: "none", neck: "clean", foot: "flat", solid: true, handleSpan: [0.45, 0.8],
+    // A flattened form swept along an S-curve, so the default reads as a sculpture, not a closed vase.
+    lab: { helixFreq: 1, helixAmp: 0.4, aspect: 0.6, twist: 0.35 },
   },
 };
 export const VESSEL_IDS = Object.keys(VESSELS);
+
+/** Ready-made sculpture forms (lab settings on top of the sculpture vessel). */
+export const SCULPTURE_FORMS = {
+  wave: { label: "คลื่นบิด", lab: { ...VESSELS.sculpture.lab } },
+  totem: {
+    label: "หินซ้อน",
+    lab: { nodes: [[0.45, 0], [0.8, 0.08], [0.95, 0.2], [0.6, 0.32], [0.85, 0.46], [0.92, 0.56], [0.5, 0.68], [0.62, 0.78], [0.55, 0.9], [0.05, 1]], twist: 0.15, aspect: 0.7 },
+  },
+  lean: {
+    label: "เอนพลิ้ว",
+    lab: { nodes: [[0.35, 0], [0.55, 0.15], [0.7, 0.4], [0.75, 0.6], [0.6, 0.85], [0.05, 1]], bends: 1.5, bendDepth: 0.35, bendPoles: 1, aspect: 0.6, twist: 0.25 },
+  },
+  facet: {
+    label: "เหลี่ยมเกลียว",
+    lab: { nodes: [[0.4, 0], [0.7, 0.15], [1, 0.45], [0.9, 0.7], [0.5, 0.9], [0.05, 1]], polySides: 5, polyRound: 0.4, twist: 0.6 },
+  },
+  bud: {
+    label: "ดอกตูม",
+    lab: { nodes: [[0.55, 0], [0.85, 0.12], [1, 0.35], [0.95, 0.55], [0.6, 0.8], [0.15, 0.97], [0.05, 1]], outline: "flower", twist: 0.35 },
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /* Config                                                               */
@@ -134,6 +170,7 @@ export const DEFAULT_LAB = {
   nodes: null, // custom outer profile [[r, y], ...] or null = use the vessel preset
   twist: 0, // full turns of cross-section rotation from base to rim
   aspect: 1, // x-stretch of the cross-section (1 = round)
+  outline: "round", // cross-section outline seen from above (OUTLINES); polySides only applies to round
   polySides: 0, // 0 = round; 3.. = polygon cross-section
   polyRound: 0, // -1..1 corner rounding
   polyBulge: 0, // 0..1 outward bulge of the polygon's flats
@@ -182,7 +219,7 @@ export function configForVessel(id, keep = {}) {
     handle: v.handle,
     neck: v.neck,
     foot: v.foot,
-    lab: { ...DEFAULT_LAB },
+    lab: { ...DEFAULT_LAB, ...(v.lab || {}) },
   });
 }
 
@@ -235,7 +272,8 @@ export function normalizeConfig(input) {
       : null;
   lab.twist = clamp(num(lab.twist, 0), -3, 3);
   lab.aspect = clamp(num(lab.aspect, 1), 0.4, 2);
-  lab.polySides = lab.polySides >= 3 ? clamp(num(lab.polySides, 0), 3, 24) : 0;
+  if (!OUTLINES[lab.outline]) lab.outline = "round";
+  lab.polySides = lab.outline !== "round" ? 0 : lab.polySides >= 3 ? clamp(num(lab.polySides, 0), 3, 24) : 0;
   lab.polyRound = clamp(num(lab.polyRound, 0), -1, 1);
   lab.polyBulge = clamp(num(lab.polyBulge, 0), 0, 0.95);
   lab.bends = clamp(num(lab.bends, 0), 0, 12);
@@ -358,6 +396,17 @@ export function assess(rawConfig, skillId = "intermediate") {
     score += 2;
     notes.push("ทรงเหลี่ยมต้องดันผนังจากด้านในหรือใช้แผ่นดินประกอบ");
   }
+  // A shaped plate or low dish is a beginner slab project: cut around a paper template, drape over a mould.
+  const flatPiece = c.vessel === "plate" || (c.vessel === "bowl" && c.height < c.belly * 0.5);
+  if (lab.outline !== "round") {
+    if (flatPiece) {
+      score += 0.5;
+      notes.push(`จานทรง${OUTLINES[lab.outline].label}ขึ้นรูปด้วยแผ่นดิน: ตัดตามแบบกระดาษแล้ววางบนแม่พิมพ์ให้ขอบโค้ง`);
+    } else {
+      score += lab.outline === "squircle" || lab.outline === "cloud" ? 1.5 : 2;
+      notes.push(`ทรง${OUTLINES[lab.outline].label}ปั้นแป้นตรงๆ ไม่ได้ ต้องขึ้นรูปด้วยแผ่นดินหรือบีบทรงจากชิ้นกลม`);
+    }
+  }
   if (lab.bends > 0 && lab.bendDepth > 0) score += 2;
   if (lab.helixFreq > 0 && lab.helixAmp > 0) {
     score += 3;
@@ -386,6 +435,7 @@ export function assess(rawConfig, skillId = "intermediate") {
 
   let method = "ปั้นแป้นหมุน (Wheel Thrown)";
   if (lab.helixFreq > 0 || c.vessel === "sculpture") method = "ปั้นมือ (Hand Building)";
+  else if (lab.outline !== "round" && flatPiece) method = "ขึ้นรูปแผ่นดิน (Slab Building)";
   else if (c.texture === "pinch" && (c.vessel === "bowl" || c.vessel === "plate")) method = "ปั้นบีบ (Pinch Pot)";
   else if (c.texture === "pinch") method = "ปั้นแป้น + บีบแต่งมือ";
   else if (c.handle !== "none" && (c.vessel === "mug" || c.vessel === "pitcher")) method = "ปั้นแป้น + ดึงหูจับ";
@@ -460,7 +510,7 @@ export function buildGuide(rawConfig, skillId = "intermediate") {
     "นวดดินไล่ฟองอากาศจนเนื้อเนียน ชั่งน้ำหนักดินให้เผื่อประมาณ 25–30% จากน้ำหนักชิ้นงาน แล้วตั้งกลางแป้นให้ดิ่ง",
     c.texture === "pinch"
       ? `ขึ้นรูป${v.label}ด้วยการบีบมือ เริ่มจากก้อนกลม กดเปิดตรงกลางแล้วบีบผนังทีละรอบให้หนาประมาณ ${c.wall.toFixed(1)} ซม.`
-      : `ขึ้นรูป${v.label}บนแป้นหมุน ดึงผนังให้หนาประมาณ ${c.wall.toFixed(1)} ซม. สูง ${Math.round(c.height)} ซม. ส่วนกว้างสุด ${c.belly} ซม.`,
+      : `ขึ้นรูป${v.label}บนแป้นหมุน ดึงผนังให้หนาประมาณ ${c.wall.toFixed(1)} ซม. สูง ${Math.round(c.height)} ซม. ส่วนกว้างสุด ${Math.round(c.belly * 10) / 10} ซม.`,
     NECK_STEP[c.neck],
   ];
   if (mods.scallops || mods.ripples) steps.push("ขณะดินหมาด ใช้เครื่องมือกดหรือขูดลวดลายผิวตามที่ออกแบบ ทำให้ระยะห่างสม่ำเสมอ");
@@ -484,7 +534,7 @@ export function buildGuide(rawConfig, skillId = "intermediate") {
   lines.push("");
   lines.push("## สเปกชิ้นงาน");
   lines.push(`- ประเภท: ${v.label}`);
-  lines.push(`- ขนาด: สูง ${Math.round(c.height)} ซม. · กว้างสุด ${c.belly} ซม.${c.vessel === "sculpture" ? "" : ` · ผนัง ${c.wall.toFixed(1)} ซม.`}`);
+  lines.push(`- ขนาด: สูง ${Math.round(c.height)} ซม. · กว้างสุด ${Math.round(c.belly * 10) / 10} ซม.${c.vessel === "sculpture" ? "" : ` · ผนัง ${c.wall.toFixed(1)} ซม.`}`);
   lines.push(`- ปากภาชนะ: ${NECKS[c.neck].label} · ฐาน: ${FEET[c.foot].label} · หู: ${HANDLES[c.handle].label}`);
   lines.push(`- ดิน: ${CLAYS[c.clay].label} (${TEXTURES[c.texture].label})`);
   lines.push(`- เคลือบ: ${glazeLabel(c)} · พื้นผิว${FINISHES[c.surface].label}`);

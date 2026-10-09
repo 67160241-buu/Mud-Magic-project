@@ -7,7 +7,7 @@
 <meta name="description" content="ออกแบบแจกัน ชาม เหยือก จาน แก้ว และประติมากรรมเซรามิกของคุณเอง ปรับเส้นโค้งทรง ลวดลาย และสีเคลือบในสตูดิโอ 3D แบบสด พร้อมประเมินความยากและคู่มือการปั้น" />
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=EB+Garamond:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <style>
 /* ?embed=1 — Studio inside the create wizard: keep only the editor */
 html.mm-embed #top-nav > a, html.mm-embed #top-nav > div.xl\:flex, html.mm-embed #mm-save-btn, html.mm-embed #mm-preview-btn, html.mm-embed #mm-share-btn, html.mm-embed #mm-guide-btn, html.mm-embed #mm-account-link, html.mm-embed #mobile-ai-toggle, html.mm-embed #ai-panel, html.mm-embed #mm-exit-preview { display: none !important; }
@@ -43,8 +43,8 @@ html.mm-embed #tools-panel { top: 48px; }
         borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
         spacing: { "margin-mobile": "20px", "section-gap": "160px", "margin-desktop": "64px", unit: "8px", "container-max": "1280px", gutter: "24px" },
         fontFamily: {
-          "body-lg": ["Noto Sans Thai", "DM Sans", "sans-serif"], "display-lg": ["Noto Serif Thai", "EB Garamond", "serif"], "headline-md": ["Noto Serif Thai", "EB Garamond", "serif"],
-          "display-lg-mobile": ["Noto Serif Thai", "EB Garamond", "serif"], "body-md": ["Noto Sans Thai", "DM Sans", "sans-serif"], "headline-lg": ["Noto Serif Thai", "EB Garamond", "serif"], "label-sm": ["Noto Sans Thai", "DM Sans", "sans-serif"],
+          "body-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "display-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "headline-md": ["Prompt", "Noto Sans Thai", "sans-serif"],
+          "display-lg-mobile": ["Prompt", "Noto Sans Thai", "sans-serif"], "body-md": ["Prompt", "Noto Sans Thai", "sans-serif"], "headline-lg": ["Prompt", "Noto Sans Thai", "sans-serif"], "label-sm": ["Prompt", "Noto Sans Thai", "sans-serif"],
         },
         fontSize: {
           "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
@@ -68,6 +68,7 @@ html.mm-embed #tools-panel { top: 48px; }
 }
 </script>
 <script>if(new URLSearchParams(location.search).get('embed')==='1'&&window.parent!==window)document.documentElement.classList.add('mm-embed');</script>
+<style>body { font-family: "Prompt", "Noto Sans Thai", sans-serif; }</style>
 </head>
 <body class="bg-background text-on-background font-body-md overflow-hidden h-screen flex flex-col">
 
@@ -75,38 +76,38 @@ html.mm-embed #tools-panel { top: 48px; }
 <nav class="bg-background/80 backdrop-blur-md fixed top-0 left-0 w-full z-50 flex justify-between items-center gap-3 px-4 md:px-8 py-3 border-b border-outline-variant/30 shadow-sm" style="max-width: 100vw;" id="top-nav">
 <a href="index.html" class="font-headline-md text-[26px] leading-8 text-primary tracking-tight shrink-0">Mud Magic</a>
 <div class="hidden xl:flex gap-8 items-center">
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">ผลงาน</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">ขั้นตอน</a>
-<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">สตูดิโอ</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">แกลเลอรี</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Showcase</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">Process</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">Studio</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Gallery</a>
 </div>
 <div class="flex items-center gap-1 sm:gap-3 min-w-0">
 <div class="hidden sm:flex items-center gap-0.5 border-r border-outline-variant/30 pr-2 mr-1 text-on-surface-variant">
-<button id="mm-undo-btn" class="p-1.5 hover:text-primary transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed" title="ย้อนกลับ (Ctrl+Z)" aria-label="ย้อนกลับ"><span class="material-symbols-outlined" style="font-size: 20px;">undo</span></button>
-<button id="mm-redo-btn" class="p-1.5 hover:text-primary transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed" title="ทำซ้ำ (Ctrl+Shift+Z)" aria-label="ทำซ้ำ"><span class="material-symbols-outlined" style="font-size: 20px;">redo</span></button>
+<button id="mm-undo-btn" class="p-1.5 hover:text-primary transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed" title="Undo (Ctrl+Z)" aria-label="Undo"><span class="material-symbols-outlined" style="font-size: 20px;">undo</span></button>
+<button id="mm-redo-btn" class="p-1.5 hover:text-primary transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><span class="material-symbols-outlined" style="font-size: 20px;">redo</span></button>
 </div>
 <div class="hidden lg:flex items-center gap-1.5 font-label-sm text-xs text-on-surface-variant/80 border border-outline-variant/40 bg-surface-container-low px-2.5 py-1 rounded-full">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span><span id="mm-save-status">บันทึกอัตโนมัติ</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span><span id="mm-save-status">Autosave</span>
 </div>
 <button id="mm-save-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden md:flex">
-<span class="material-symbols-outlined" style="font-size: 20px;">save</span> บันทึก
+<span class="material-symbols-outlined" style="font-size: 20px;">save</span> Save
 </button>
 <button id="mm-preview-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden md:flex">
-<span class="material-symbols-outlined" style="font-size: 20px;">view_in_ar</span> พรีวิว 3D
+<span class="material-symbols-outlined" style="font-size: 20px;">view_in_ar</span> 3D Preview
 </button>
 <button id="mm-share-btn" class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors items-center gap-1 hidden md:flex">
-<span class="material-symbols-outlined" style="font-size: 20px;">share</span> แชร์
+<span class="material-symbols-outlined" style="font-size: 20px;">share</span> Share
 </button>
 <button id="mm-guide-btn" class="hidden sm:flex bg-primary text-on-primary font-label-sm text-label-sm px-4 py-2 rounded-full hover:bg-surface-tint transition-all duration-300 items-center gap-1.5 shadow-sm whitespace-nowrap">
-<span class="material-symbols-outlined" style="font-size: 18px;">precision_manufacturing</span> <span class="hidden lg:inline">รับคู่มือการปั้น</span><span class="lg:hidden">คู่มือ</span>
+<span class="material-symbols-outlined" style="font-size: 18px;">precision_manufacturing</span> <span class="hidden lg:inline">Get Crafting Guide</span><span class="lg:hidden">Guide</span>
 </button>
-<button id="mobile-tools-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="สลับแผงเครื่องมือ">
+<button id="mobile-tools-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="Toggle tools panel">
 <span class="material-symbols-outlined">tune</span>
 </button>
-<button id="mobile-ai-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="สลับแผง AI">
+<button id="mobile-ai-toggle" class="md:hidden text-on-surface-variant p-1.5" aria-label="Toggle AI panel">
 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
 </button>
-<a href="login.html" id="mm-account-link" class="hidden sm:inline-block bg-surface-container-high text-on-surface font-label-sm text-label-sm px-4 py-2 rounded-full hover:bg-surface-variant transition-all duration-300 whitespace-nowrap">เข้าสู่ระบบ</a>
+<a href="login.html" id="mm-account-link" class="hidden sm:inline-block bg-surface-container-high text-on-surface font-label-sm text-label-sm px-4 py-2 rounded-full hover:bg-surface-variant transition-all duration-300 whitespace-nowrap">Sign in</a>
 </div>
 </nav>
 
@@ -288,12 +289,16 @@ html.mm-embed #tools-panel { top: 48px; }
 <!-- Feasibility + dimensions -->
 <div class="mm-hide-in-preview absolute top-3 left-3 md:top-5 md:left-5 z-20 flex flex-col gap-2 w-[min(19rem,calc(100%-1.5rem))]">
 <div id="feas-card" class="bg-white/90 backdrop-blur-md border border-outline-variant/40 rounded-xl p-3.5 shadow-sm space-y-2">
-<div class="flex items-center justify-between gap-2">
+<button type="button" id="feas-toggle" aria-expanded="true" aria-controls="feas-body" title="ซ่อน/แสดงรายละเอียด" class="w-full flex items-center justify-between gap-2 text-left">
 <span class="text-[11px] font-label-sm font-semibold tracking-wider uppercase text-tertiary flex items-center gap-1.5">
 <span id="feas-dot" class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> ความเป็นไปได้ในการปั้น
 </span>
+<span class="flex items-center gap-1">
 <span id="feas-pct" class="text-xs font-semibold text-secondary px-2 py-0.5 bg-secondary-container/70 rounded-full whitespace-nowrap">--</span>
-</div>
+<span id="feas-chevron" class="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform duration-200">expand_less</span>
+</span>
+</button>
+<div id="feas-body" class="space-y-2">
 <div class="space-y-1">
 <div class="flex justify-between gap-2 text-xs"><span class="text-on-surface-variant">ระดับความยาก</span><span id="feas-level" class="font-medium text-on-surface text-right">--</span></div>
 <div class="flex justify-between gap-2 text-xs"><span class="text-on-surface-variant">วิธีขึ้นรูป</span><span id="feas-method" class="font-medium text-on-surface text-right">--</span></div>
@@ -306,10 +311,40 @@ html.mm-embed #tools-panel { top: 48px; }
 <div id="skill-grid" class="flex gap-1 flex-1"></div>
 </div>
 </div>
+</div>
+<script>
+  // Feasibility card: click the header to collapse it so it doesn't cover the piece.
+  (function () {
+    var KEY = "mudmagic_feas_collapsed";
+    var btn = document.getElementById("feas-toggle");
+    var body = document.getElementById("feas-body");
+    var chev = document.getElementById("feas-chevron");
+    function set(collapsed) {
+      body.classList.toggle("hidden", collapsed);
+      chev.textContent = collapsed ? "expand_more" : "expand_less";
+      btn.setAttribute("aria-expanded", String(!collapsed));
+      try { localStorage.setItem(KEY, collapsed ? "1" : "0"); } catch (e) {}
+    }
+    var start = false;
+    try { start = localStorage.getItem(KEY) === "1"; } catch (e) {}
+    set(start);
+    btn.addEventListener("click", function () { set(!body.classList.contains("hidden")); });
+  })();
+</script>
 <div class="flex items-center gap-2 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-outline-variant/30 text-xs font-label-sm text-on-surface-variant shadow-sm w-fit max-w-full">
 <span class="material-symbols-outlined text-[16px] text-primary shrink-0">straighten</span> <span id="dim-chip" class="truncate"></span>
 </div>
 </div>
+
+<!-- AI command bar: type a change, OpenAI returns a patch the studio applies -->
+<form id="mm-cmd-form" class="mm-hide-in-preview absolute bottom-[92px] md:bottom-[112px] left-1/2 -translate-x-1/2 w-[min(92%,520px)] z-20" autocomplete="off">
+<div class="flex items-center gap-2 bg-white/95 backdrop-blur-md border border-outline-variant/50 rounded-full pl-4 pr-1.5 py-1.5 shadow-sm focus-within:border-primary">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<input id="mm-cmd-input" type="text" maxlength="300" class="flex-1 min-w-0 bg-transparent border-0 focus:ring-0 text-sm text-on-surface placeholder:text-outline p-0" placeholder="สั่ง AI ปรับแบบ เช่น ทำคอให้สูงขึ้น ปากบานขึ้น สีน้ำเงิน" aria-label="คำสั่ง AI">
+<button id="mm-cmd-btn" type="submit" class="bg-primary text-on-primary rounded-full w-8 h-8 flex items-center justify-center shrink-0 disabled:opacity-60 disabled:cursor-wait" aria-label="ส่งคำสั่ง"><span class="material-symbols-outlined text-[18px]">arrow_upward</span></button>
+</div>
+<p id="mm-cmd-note" class="text-center text-[11px] text-on-surface-variant mt-1 min-h-[16px] drop-shadow-sm" aria-live="polite"></p>
+</form>
 
 <!-- Viewport Controls -->
 <div class="mm-hide-in-preview absolute bottom-5 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md border border-outline-variant/40 rounded-full px-4 md:px-6 py-2.5 flex items-center gap-4 md:gap-5 shadow-sm z-20">
@@ -429,6 +464,6 @@ html.mm-embed #tools-panel { top: 48px; }
 </script>
 <script src="js/api-client.js"></script>
 <script src="js/main.js"></script>
-<script type="module" src="js/studio.js?v=3"></script>
+<script type="module" src="js/studio.js?v=10"></script>
 </body>
 </html>

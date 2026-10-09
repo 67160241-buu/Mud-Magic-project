@@ -10,7 +10,7 @@
 //
 // `suggestVessels` always resolves — if the server is missing or fails, the
 // offline variations are returned together with a notice.
-import { suggestDesigns, aiAvailable } from "./ai-design.js";
+import { aiAvailable } from "./ai-design.js";
 import {
   VESSELS, VESSEL_IDS, NECKS, FEET, HANDLES, CLAYS, CLAY_IDS, GLAZES, PATTERNS, RAW_GLAZE,
   configForVessel, normalizeConfig, variationTitle, variationSubtitle,
@@ -24,6 +24,16 @@ const WORDS = {
     plate: ["จาน", "plate", "dish", "platter"],
     mug: ["แก้ว", "มัค", "mug", "cup"],
     sculpture: ["ประติมากรรม", "รูปปั้น", "sculpture", "statue", "abstract"],
+  },
+  outline: {
+    heart: ["หัวใจ", "heart"],
+    star: ["ดาว", "star"],
+    flower: ["ดอกไม้", "กลีบ", "flower", "petal"],
+    cloud: ["เมฆ", "cloud"],
+    clover: ["โคลเวอร์", "clover", "สามแฉก"],
+    teardrop: ["หยดน้ำ", "teardrop", "drop"],
+    leaf: ["ใบไม้", "leaf"],
+    squircle: ["เหลี่ยมมน", "สี่เหลี่ยม", "square", "squircle"],
   },
   neck: {
     asym: ["เบี้ยว", "ไม่สมมาตร", "asymmetric", "uneven lip", "asym"],
@@ -64,7 +74,12 @@ const WORDS = {
     "#3B2A20": ["น้ำตาล", "กาแฟ", "espresso", "brown", "coffee"],
     "#E3A896": ["ชมพู", "blush", "pink", "peach", "rose"],
     "#2B2B2B": ["ดำ", "ถ่าน", "charcoal", "black", "graphite"],
-    "#4C5A66": ["ฟ้า", "น้ำเงิน", "denim", "blue", "navy", "indigo"],
+    "#8E6FB5": ["ม่วง", "ลาเวนเดอร์", "purple", "violet", "lavender"],
+    "#4C5A66": ["น้ำเงิน", "denim", "navy", "indigo"],
+    "#7FA7C9": ["ฟ้า", "blue", "sky"],
+    "#B8433A": ["แดง", "red", "crimson"],
+    "#E2B84C": ["เหลือง", "yellow", "mustard"],
+    "#8E9196": ["เทา", "grey", "gray"],
     "#FBF6EF": ["งาช้าง", "ขาว", "ivory", "white", "snow"],
   },
   pattern: {
@@ -108,6 +123,7 @@ export function readPrompt(prompt) {
   const small = ["เล็ก", "จิ๋ว", "small", "tiny", "mini"].some((w) => t.includes(w)) && !t.includes("หูเล็ก");
   return {
     vessel: match(t, WORDS.vessel),
+    outline: match(t, WORDS.outline),
     neck: match(t, WORDS.neck),
     foot: match(t, WORDS.foot),
     handle: match(t, WORDS.handle),
@@ -189,6 +205,7 @@ export function offlineVessels(prompt, { count = 4, seed = 0, fallbackVessel = "
         ? pickKey(HANDLES, rng)
         : "none");
     if (vessel === "sculpture" || vessel === "plate") config.handle = hint.handle || "none";
+    if (hint.outline) config.lab = { ...config.lab, outline: hint.outline };
     out.push(normalizeConfig(config));
   }
 
@@ -224,26 +241,43 @@ export function remixConfig(base, seed = 1, count = 4) {
  * Main entry. Always resolves.
  * @returns {Promise<{designs:Array<{name,rationale,config}>, source:"openai"|"offline", notice?:string}>}
  */
+const API_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
+
+/** Turns a server patch ({vessel, height, lab, ...} + pattern id) into a full config. */
+export function configFromPatch(patch = {}, pattern = null, fallbackVessel = "vase") {
+  const base = configForVessel(VESSELS[patch.vessel] ? patch.vessel : fallbackVessel);
+  const next = { ...base, ...patch, lab: { ...base.lab, ...(patch.lab || {}) } };
+  if (pattern) {
+    const preset = PATTERNS.find((p) => p.id === pattern);
+    next.modulation = preset?.mod ? { ...preset.mod } : null;
+  }
+  return normalizeConfig(next);
+}
+
 export async function suggestVessels(prompt, { count = 4, seed = 0, fallbackVessel = "vase", skillLevel = null } = {}) {
   const offline = offlineVessels(prompt, { count, seed, fallbackVessel });
   if (!(await aiAvailable())) {
     return { designs: offline, source: "offline", notice: "ยังไม่ได้ตั้งค่า OpenAI บนเซิร์ฟเวอร์ — ใช้โหมดออฟไลน์แทน" };
   }
   try {
-    const res = await suggestDesigns(prompt, { skillLevel, count, seed });
-    if (res.source !== "openai") return { designs: offline, source: "offline", notice: res.notice };
-    const hint = readPrompt(prompt);
-    const designs = offline.map((d, i) => {
-      const ai = res.designs[i % res.designs.length];
-      const rc = normalizeConfig(ai.renderConfig || {});
-      const merged = normalizeConfig({
-        ...d.config,
-        color: hint.glaze || rc.color,
-        surface: hint.surface || rc.surface,
-        modulation: hint.pattern ? d.config.modulation : rc.modulation,
-      });
-      return { name: ai.name || d.name, rationale: ai.rationale || d.rationale, config: merged };
+    const res = await fetch(`${API_BASE}/ai/suggest-vessels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, count, skill_level: skillLevel, vessel: fallbackVessel }),
+      signal: AbortSignal.timeout(70000),
     });
+    if (!res.ok) throw new Error(`AI ${res.status}`);
+    const body = await res.json();
+    // A shape the person named ("รูปดาว", "heart") is kept even if the model forgot to set it.
+    const wanted = readPrompt(prompt).outline;
+    const designs = (body.designs || []).map((d) => {
+      let config = configFromPatch(d.patch, d.pattern, fallbackVessel);
+      if (wanted && config.lab.outline === "round") config = normalizeConfig({ ...config, lab: { ...config.lab, outline: wanted } });
+      return { name: d.name, rationale: d.rationale, config };
+    });
+    if (!designs.length) throw new Error("no designs");
+    // Pad with offline picks if the model returned fewer than asked.
+    while (designs.length < count) designs.push(offline[designs.length]);
     return { designs, source: "openai" };
   } catch (err) {
     return { designs: offline, source: "offline", notice: "เชื่อมต่อ AI ไม่ได้ — ใช้โหมดออฟไลน์แทน" };

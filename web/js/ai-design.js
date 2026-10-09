@@ -15,8 +15,8 @@ const API_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
 let statusCache = null;
 
 /** Is the server-side AI actually configured? Cached after first check. */
-export async function aiAvailable() {
-  if (statusCache !== null) return statusCache;
+export async function aiAvailable(force = false) {
+  if (statusCache !== null && !(force && statusCache === false)) return statusCache;
   try {
     const res = await fetch(`${API_BASE}/ai/status`, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) throw new Error("status not ok");

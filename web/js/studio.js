@@ -16,7 +16,7 @@ import { aiAvailable } from "./ai-design.js";
 import { suggestVessels, remixConfig } from "./vessel-ai.js";
 import {
   VESSELS, VESSEL_IDS, NECKS, FEET, HANDLES, CLAYS, TEXTURES, FINISHES, GLAZES, RAW_GLAZE,
-  PATTERNS, COLOR_PATTERNS, DEFAULT_LAB, DEFAULT_CONFIG, SKILLS,
+  PATTERNS, COLOR_PATTERNS, OUTLINES, SCULPTURE_FORMS, DEFAULT_LAB, DEFAULT_CONFIG, SKILLS,
   normalizeConfig, encodeConfig, decodeConfig, assess, summaryLine, buildGuide, variationTitle, variationSubtitle,
 } from "./vessels.js";
 
@@ -209,6 +209,9 @@ resizeViewport();
 
 function animate() {
   requestAnimationFrame(animate);
+  // Embedded in the create page: skip drawing while that step is hidden, so the
+  // idle editor doesn't keep the page's (shared) main thread and GPU busy.
+  if (EMBED && window.frameElement && window.frameElement.offsetParent === null) return;
   if (autoRotate && potGroup) potGroup.rotation.y += 0.006;
   sculptor.tick();
   updateBrushCursor();
@@ -310,8 +313,8 @@ function persistSoon() {
     if (label) {
       const t = new Date();
       label.textContent = ok
-        ? `บันทึกอัตโนมัติ ${t.getHours().toString().padStart(2, "0")}:${t.getMinutes().toString().padStart(2, "0")}`
-        : "เก็บในเครื่องไม่ได้";
+        ? `Autosaved ${t.getHours().toString().padStart(2, "0")}:${t.getMinutes().toString().padStart(2, "0")}`
+        : "Not saved locally";
     }
   }, 350);
 }
@@ -357,6 +360,8 @@ const applyLab = (patch, opts) => apply({ lab: { ...config.lab, ...patch } }, op
 /* ------------------------------------------------------------------ */
 /* Controls                                                            */
 /* ------------------------------------------------------------------ */
+// Shape settings the sculpture forms use; cleared when leaving the sculpture so a mug doesn't inherit a twist.
+const SCULPT_SHAPE_KEYS = ["twist", "aspect", "outline", "polySides", "polyRound", "bends", "bendDepth", "bendPoles", "helixFreq", "helixAmp"];
 const vesselGrid = optionGrid(
   "vessel-grid",
   VESSEL_IDS.map((id) => ({
@@ -376,7 +381,13 @@ const vesselGrid = optionGrid(
       neck: undefined,
       foot: undefined,
       handle: undefined,
-      lab: { ...config.lab, nodes: null },
+      // Drop the old vessel's built-in shape (e.g. the sculpture's S-curve) and take the new one's.
+      lab: {
+        ...config.lab,
+        ...(config.vessel === "sculpture" ? Object.fromEntries(SCULPT_SHAPE_KEYS.map((k) => [k, DEFAULT_LAB[k]])) : {}),
+        ...(VESSELS[id].lab || {}),
+        nodes: null,
+      },
     });
     apply(fresh);
   }
@@ -557,6 +568,39 @@ const labSlider = (container, key, label, min, max, step, fmt) =>
     set: (v) => applyLab({ [key]: key === "polySides" && v < 3 ? 0 : v }, { commit: false }),
   });
 const f2 = (v) => v.toFixed(2);
+// Outline buttons (round / heart) sit above the shape sliders.
+{
+  const host = document.createElement("div");
+  host.id = "outline-grid";
+  host.className = "grid grid-cols-3 gap-1.5 mb-2";
+  $("lab-sliders-shape").before(host);
+}
+// Sculpture forms: shown under the vessel picker only while the sculpture is selected.
+{
+  const host = document.createElement("div");
+  host.id = "sculpture-forms";
+  host.className = "hidden mt-2";
+  host.innerHTML = '<p class="text-[11px] text-on-surface-variant mb-1">รูปแบบประติมากรรม</p><div id="sculpture-form-grid" class="grid grid-cols-3 gap-1.5"></div>';
+  $("vessel-grid").after(host);
+}
+const sculptureFormGrid = optionGrid(
+  "sculpture-form-grid",
+  Object.keys(SCULPTURE_FORMS).map((id) => ({ id, html: SCULPTURE_FORMS[id].label, extraClass: "text-center " })),
+  (id) => apply({ lab: { ...DEFAULT_LAB, ...SCULPTURE_FORMS[id].lab } })
+);
+function currentSculptureForm() {
+  const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  return Object.keys(SCULPTURE_FORMS).find((id) => {
+    const want = { ...DEFAULT_LAB, ...SCULPTURE_FORMS[id].lab };
+    return ["nodes", "twist", "aspect", "outline", "polySides", "bends", "helixFreq"].every((k) => same(config.lab[k], want[k]));
+  }) || "";
+}
+
+const outlineGrid = optionGrid(
+  "outline-grid",
+  Object.keys(OUTLINES).map((id) => ({ id, html: OUTLINES[id].label, extraClass: "text-center " })),
+  (id) => applyLab({ outline: id })
+);
 labSlider("lab-sliders-shape", "polySides", "หน้าตัดหลายเหลี่ยม", 0, 12, 1, (v) => (v < 3 ? "กลม" : `${v} ด้าน`));
 labSlider("lab-sliders-shape", "polyRound", "ความมนของมุม", -1, 1, 0.05, f2);
 labSlider("lab-sliders-shape", "polyBulge", "ความป่องของด้าน", 0, 0.9, 0.05, f2);
@@ -590,7 +634,7 @@ $("profile-reset").addEventListener("click", () => {
   applyLab({ nodes: null });
 });
 $("lab-reset").addEventListener("click", () => {
-  apply({ lab: { ...DEFAULT_LAB } });
+  apply({ lab: { ...DEFAULT_LAB, ...(VESSELS[config.vessel].lab || {}) } });
   toast("ล้างค่าห้องทดลองแล้ว", "restart_alt");
 });
 $("lab-panel").addEventListener("toggle", () => profileEditor.redraw());
@@ -647,6 +691,9 @@ function refreshUI({ skipEditor = false } = {}) {
   finishGrid.refresh(config.surface);
   skillGrid.refresh(skill);
   cpatGrid.refresh(config.lab.colorPattern);
+  outlineGrid.refresh(config.lab.outline);
+  $("sculpture-forms").classList.toggle("hidden", config.vessel !== "sculpture");
+  if (config.vessel === "sculpture") sculptureFormGrid.refresh(currentSculptureForm());
   const inferred = inferPatternId(config.modulation);
   if (inferred !== null) activePatternId = inferred;
   patternGrid.refresh(inferred === null ? "" : activePatternId);
@@ -866,6 +913,10 @@ function renderThumbnail(cfg) {
   group.position.y = -(group.userData.fit.height * s) / 2;
   group.rotation.y = 0.65;
   thumbScene.add(group);
+  // Flat pieces (plates, low bowls) are shot from higher up so their outline reads.
+  const flat = cfg.height < cfg.belly * 0.5;
+  thumbCamera.position.set(0, flat ? 2.4 : 0.6, flat ? 2.6 : 3.5);
+  thumbCamera.lookAt(0, -0.02, 0);
   thumbRenderer.render(thumbScene, thumbCamera);
   const url = thumbRenderer.domElement.toDataURL("image/png");
   thumbScene.remove(group);
@@ -1037,6 +1088,83 @@ aiAvailable().then((enabled) => {
 });
 
 /* ------------------------------------------------------------------ */
+/* AI command bar                                                      */
+/* ------------------------------------------------------------------ */
+// "ทำคอให้สูงขึ้น" → /ai/edit-design → a small config patch, applied through
+// apply() so it lands in undo history like any slider change.
+const API_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
+const cmdForm = $("mm-cmd-form");
+const cmdInput = $("mm-cmd-input");
+const cmdBtn = $("mm-cmd-btn");
+const cmdNote = $("mm-cmd-note");
+let cmdBusy = false;
+
+async function requestEdit(command) {
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/ai/edit-design`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command, config, profile: config.lab.nodes || VESSELS[config.vessel].nodes }),
+      signal: AbortSignal.timeout(35000),
+    });
+  } catch (err) {
+    throw new Error(err.name === "TimeoutError" ? "AI ใช้เวลานานเกินไป ลองอีกครั้ง" : "ติดต่อเซิร์ฟเวอร์ AI ไม่ได้");
+  }
+  if (res.status === 429) throw new Error("ส่งคำสั่งถี่เกินไป รอสักครู่แล้วลองใหม่");
+  if (!res.ok) throw new Error("AI ปรับแบบไม่สำเร็จ ลองพิมพ์ใหม่อีกครั้ง");
+  return res.json();
+}
+
+function applyEdit({ patch = {}, pattern = null }) {
+  let base = config;
+  if (patch.vessel && patch.vessel !== config.vessel) {
+    base = normalizeConfig({
+      ...config,
+      vessel: patch.vessel,
+      height: undefined, belly: undefined, wall: undefined,
+      neck: undefined, foot: undefined, handle: undefined,
+      lab: { ...config.lab, nodes: null },
+    });
+  }
+  const next = { ...base, ...patch, lab: { ...base.lab, ...(patch.lab || {}) } };
+  if (pattern) {
+    const preset = PATTERNS.find((p) => p.id === pattern);
+    next.modulation = preset?.mod ? { ...preset.mod } : null;
+  }
+  const before = JSON.stringify(config);
+  apply(next);
+  return JSON.stringify(config) !== before;
+}
+
+cmdForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const command = cmdInput.value.trim();
+  if (!command || cmdBusy) return;
+  if (!(await aiAvailable())) {
+    cmdNote.textContent = "ยังไม่ได้เชื่อม OpenAI จึงใช้คำสั่ง AI ไม่ได้";
+    return;
+  }
+  cmdBusy = true;
+  cmdBtn.disabled = true;
+  cmdInput.disabled = true;
+  cmdNote.textContent = "AI กำลังปรับแบบ...";
+  try {
+    const result = await requestEdit(command);
+    const changed = applyEdit(result);
+    if (changed) cmdInput.value = "";
+    cmdNote.textContent = result.message || (changed ? "ปรับแบบแล้ว กดย้อนกลับได้ถ้าไม่ชอบ" : "ไม่มีอะไรเปลี่ยน ลองพิมพ์ให้ชัดขึ้น");
+  } catch (err) {
+    cmdNote.textContent = err.message;
+  } finally {
+    cmdBusy = false;
+    cmdBtn.disabled = false;
+    cmdInput.disabled = false;
+    cmdInput.focus();
+  }
+});
+
+/* ------------------------------------------------------------------ */
 /* Boot                                                                */
 /* ------------------------------------------------------------------ */
 refreshUI();
@@ -1061,6 +1189,18 @@ if (EMBED) {
     if (e.origin !== window.location.origin || e.source !== window.parent) return;
     if (e.data?.type === "mudmagic-snapshot-request") {
       window.parent.postMessage({ type: "mudmagic-snapshot", id: e.data.id, png: snapshotPng() }, window.location.origin);
+    }
+    // Swap in another design without reloading the page (a reload costs a new
+    // WebGL context and shader compile every time).
+    if (e.data?.type === "mudmagic-studio-load" && e.data.config) {
+      config = normalizeConfig(e.data.config);
+      history = [JSON.stringify(config)];
+      historyIndex = 0;
+      refreshHistoryButtons();
+      scheduleRebuild();
+      refreshUI();
+      seedVariations();
+      window.parent.postMessage({ type: "mudmagic-studio-config", config: JSON.parse(JSON.stringify(config)), ready: true }, window.location.origin);
     }
   });
   window.parent.postMessage({ type: "mudmagic-studio-config", config: JSON.parse(JSON.stringify(config)), ready: true }, window.location.origin);

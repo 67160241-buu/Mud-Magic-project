@@ -158,27 +158,39 @@
   }
 
   /* ---------------------------------------------------------------- */
-  /* Account-aware nav: swaps "Get Started" -> "Logout (username)"     */
-  /* when the API reports an active session (see api-client.js).       */
+  /* Account-aware nav: once signed in, the "login" link becomes a     */
+  /* profile chip (initial + name) that opens the dashboard, where     */
+  /* the profile and logout live (see dashboard.html).                 */
   /* ---------------------------------------------------------------- */
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+  }
+
   function initAccountNav() {
     const link = document.getElementById("mm-account-link");
     const mobileLink = document.getElementById("mm-account-link-mobile");
     if ((!link && !mobileLink) || !window.MudMagicAPI) return;
+    if (!window.MudMagicAPI.isLoggedIn()) return;
 
-    if (window.MudMagicAPI.isLoggedIn()) {
-      const auth = window.MudMagicAPI.getAuth();
-      const username = auth?.user?.username || "account";
-      [link, mobileLink].forEach((el) => {
-        if (!el) return;
-        el.textContent = `ออกจากระบบ (${username})`;
-        el.setAttribute("href", "#");
-        el.addEventListener("click", (e) => {
-          e.preventDefault();
-          window.MudMagicAPI.logout();
-          window.location.reload();
-        });
-      });
+    const auth = window.MudMagicAPI.getAuth();
+    const name = auth?.user?.username || "My account";
+    const initial = (name.trim()[0] || "M").toUpperCase();
+    const onDashboard = /dashboard\.html$/.test(location.pathname);
+
+    if (link) {
+      // Keep the page's own "hide on phones" choice (index/studio have a mobile menu).
+      const display = link.classList.contains("hidden") ? "hidden sm:inline-flex" : "inline-flex";
+      link.href = "dashboard.html";
+      link.title = "My profile & dashboard";
+      link.setAttribute("aria-label", `Profile: ${name}`);
+      link.className = `mm-profile-chip ${display} items-center gap-2 pl-1 pr-3 py-1 rounded-full font-label-sm text-label-sm transition-colors whitespace-nowrap ${
+        onDashboard ? "bg-primary-fixed text-on-primary-fixed-variant" : "bg-surface-container-high text-on-surface hover:bg-surface-variant"
+      }`;
+      link.innerHTML = `<span class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center text-[13px] font-semibold">${escapeHtml(initial)}</span><span class="max-w-[120px] truncate">${escapeHtml(name)}</span>`;
+    }
+    if (mobileLink) {
+      mobileLink.href = "dashboard.html";
+      mobileLink.textContent = `My Profile (${name})`;
     }
   }
 

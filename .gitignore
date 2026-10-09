@@ -90,3 +90,8 @@ docker-compose.override.yml
 # ==========================================
 *.pem
 *.key
+# Firebase service account key (never commit)
+firebase-service-account*.json
+
+# Local backups made while editing (not part of the site)
+.backup-*/

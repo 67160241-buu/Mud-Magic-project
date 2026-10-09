@@ -125,3 +125,16 @@ def test_change_password_wrong_old_password_rejected(client):
         headers=user["headers"],
     )
     assert resp.status_code == 400
+
+
+def test_login_with_email_succeeds(client):
+    client.post("/register", json={"username": "fiona", "email": "Fiona@Example.com", "password": "secret123"})
+    resp = client.post("/login", json={"username": "fiona@example.com", "password": "secret123"})
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()
+
+
+def test_login_with_email_wrong_password_rejected(client):
+    client.post("/register", json={"username": "gina", "email": "gina@example.com", "password": "secret123"})
+    resp = client.post("/login", json={"username": "gina@example.com", "password": "nope-nope"})
+    assert resp.status_code == 401
