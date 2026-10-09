@@ -283,6 +283,12 @@ function renderStepper() {
 
 function goToStep(step) {
   if (!canOpen(step)) step = canOpen("results") ? "results" : "idea";
+  // Customizing and finishing need an account (also covers the stepper and resumed drafts).
+  const gate = window.MudMagic && window.MudMagic.requireLogin;
+  if ((step === "customize" || step === "finish") && gate && window.MudMagicAPI && !window.MudMagicAPI.isLoggedIn()) {
+    gate({ message: "เข้าสู่ระบบหรือสมัครสมาชิกเพื่อปรับแต่งแบบต่อ แบบที่ทำจะเก็บไว้ในบัญชีของคุณ" }).then((ok) => goToStep(ok ? step : "results"));
+    return;
+  }
   state.step = step;
   if (step !== "idea") $("draft-banner")?.classList.add("hidden"); // the resume offer only makes sense at the start
   document.querySelectorAll(".step-panel").forEach((p) => p.classList.toggle("hidden", p.dataset.step !== step));
@@ -691,7 +697,10 @@ function renderResults() {
   renderCompare();
 }
 
-function pickDesign(r) {
+async function pickDesign(r) {
+  // Choosing a design needs an account, so the work can be saved to it.
+  const gate = window.MudMagic && window.MudMagic.requireLogin;
+  if (gate && !(await gate({ message: "เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเลือกแบบนี้และปรับแต่งต่อ แบบที่ทำจะเก็บไว้ในบัญชีของคุณ" }))) return;
   state.activeConfig = normalizeConfig(r.config);
   state.stepsDone = [];
   goToStep("customize");
