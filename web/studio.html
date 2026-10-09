@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport" />
-<title>สตูดิโอ — Mud Magic</title>
+<title>Studio for Pro — Mud Magic</title>
 <meta name="description" content="ออกแบบแจกัน ชาม เหยือก จาน แก้ว และประติมากรรมเซรามิกของคุณเอง ปรับเส้นโค้งทรง ลวดลาย และสีเคลือบในสตูดิโอ 3D แบบสด พร้อมประเมินความยากและคู่มือการปั้น" />
 <link rel="icon" href="data:," />
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -78,7 +78,7 @@ html.mm-embed #tools-panel { top: 48px; }
 <div class="hidden xl:flex gap-8 items-center">
 <a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Showcase</a>
 <a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#process">Process</a>
-<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">Studio</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1" href="studio.html">Studio for Pro</a>
 <a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#showcase">Gallery</a>
 </div>
 <div class="flex items-center gap-1 sm:gap-3 min-w-0">
@@ -118,10 +118,17 @@ html.mm-embed #tools-panel { top: 48px; }
 <aside id="tools-panel" class="w-[19rem] max-w-[88vw] bg-surface border-r border-outline-variant/30 flex flex-col z-30 studio-shadow fixed inset-y-0 top-[60px] md:top-0 left-0 -translate-x-full md:translate-x-0 md:static transition-transform duration-300 shrink-0">
 <div class="p-5 border-b border-outline-variant/20 bg-surface-container-low/60">
 <div class="flex items-center justify-between">
-<h2 class="font-headline-md text-[22px] leading-7 text-on-surface font-semibold">สตูดิโอเซรามิก</h2>
-<span class="text-[11px] font-label-sm bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-medium">Pro Builder</span>
+<h2 class="font-headline-md text-[22px] leading-7 text-on-surface font-semibold">Studio</h2>
+<span class="text-[11px] font-label-sm bg-primary text-on-primary px-2 py-0.5 rounded-full font-medium">for Pro</span>
 </div>
-<p class="font-body-md text-on-surface-variant/80 text-xs mt-1">ปรับทรงภาชนะ เนื้อดิน และเคลือบได้ละเอียด</p>
+<p class="font-body-md text-on-surface-variant/80 text-xs mt-1">3D editor เต็มรูปแบบ ปรับทุกค่าเองได้ละเอียด</p>
+<div id="lump-hint" class="hidden mt-3 text-xs text-on-surface bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-2.5 leading-relaxed">
+<span class="material-symbols-outlined text-primary align-middle" style="font-size:16px;">front_hand</span>
+เริ่มจากก้อนดินดิบ เลือกชนิดภาชนะด้านล่างเพื่อขึ้นรูป หรือใช้ <b>โหมดปั้นอิสระ</b> (ท้ายแผงนี้) กดดึงก้อนดินได้เลย
+</div>
+<button id="open-last-btn" type="button" class="hidden mt-2 text-xs text-primary hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size:16px;">history</span>เปิดงานล่าสุดที่บันทึกไว้
+</button>
 </div>
 
 <div class="flex-1 overflow-y-auto tools-scroll p-5 space-y-6">
@@ -248,6 +255,9 @@ html.mm-embed #tools-panel { top: 48px; }
 </button>
 <button data-sculpt-mode="pull" class="flex-1 flex items-center justify-center gap-1 border font-body-md text-xs py-2 rounded-lg transition-colors bg-white text-on-surface-variant border-outline-variant">
 <span class="material-symbols-outlined" style="font-size: 16px;">remove</span> กดเข้า
+</button>
+<button data-sculpt-mode="smooth" class="flex-1 flex items-center justify-center gap-1 border font-body-md text-xs py-2 rounded-lg transition-colors bg-white text-on-surface-variant border-outline-variant">
+<span class="material-symbols-outlined" style="font-size: 16px;">water_drop</span> เกลี่ยเรียบ
 </button>
 </div>
 <div>
@@ -464,6 +474,6 @@ html.mm-embed #tools-panel { top: 48px; }
 </script>
 <script src="js/api-client.js"></script>
 <script src="js/main.js"></script>
-<script type="module" src="js/studio.js?v=10"></script>
+<script type="module" src="js/studio.js?v=12"></script>
 </body>
 </html>

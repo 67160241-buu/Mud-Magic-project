@@ -11,13 +11,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildPotGroup, disposePotGroup, exportGroupObj } from "./pot-engine.js";
 import { createProfileEditor } from "./profile-editor.js";
-import { Sculptor } from "./sculpt.js";
+import { Sculptor } from "./sculpt.js?v=2";
 import { aiAvailable } from "./ai-design.js";
 import { suggestVessels, remixConfig } from "./vessel-ai.js";
 import {
   VESSELS, VESSEL_IDS, NECKS, FEET, HANDLES, CLAYS, TEXTURES, FINISHES, GLAZES, RAW_GLAZE,
   PATTERNS, COLOR_PATTERNS, OUTLINES, SCULPTURE_FORMS, DEFAULT_LAB, DEFAULT_CONFIG, SKILLS,
-  normalizeConfig, encodeConfig, decodeConfig, assess, summaryLine, buildGuide, variationTitle, variationSubtitle,
+  normalizeConfig, configForVessel, encodeConfig, decodeConfig, assess, summaryLine, buildGuide, variationTitle, variationSubtitle,
 } from "./vessels.js";
 
 const $ = (id) => document.getElementById(id);
@@ -51,7 +51,44 @@ function safeSet(key, value) {
 // posted to the parent window instead.
 const EMBED = new URLSearchParams(window.location.search).get("embed") === "1" && window.parent !== window;
 
+// Opening the Studio on its own starts from a fresh lump of raw clay, like
+// sitting down at the wheel. A shared link (?d=), the create-page embed and
+// the dashboard still open their design; the last autosave stays one click away.
+const LUMP_CONFIG = normalizeConfig({
+  ...DEFAULT_CONFIG,
+  vessel: "sculpture",
+  height: 10,
+  belly: 15,
+  wall: 0.7,
+  neck: "clean",
+  foot: "flat",
+  handle: "none",
+  clay: "cream",
+  texture: "pinch",
+  surface: "rough",
+  color: RAW_GLAZE,
+  modulation: null,
+  lab: { ...DEFAULT_LAB, nodes: [[0.9, 0], [0.99, 0.12], [1.0, 0.4], [0.93, 0.68], [0.72, 0.88], [0.4, 0.98], [0.05, 1]] },
+});
+const OPENED_WITH_DESIGN = (() => {
+  const params = new URLSearchParams(window.location.search);
+  return EMBED || params.has("d") || ["shape", "handle", "surface", "color"].some((k) => params.has(k));
+})();
+function loadSavedConfig() {
+  for (const key of [STORAGE_KEY, LEGACY_STORAGE_KEY]) {
+    try {
+      const saved = JSON.parse(safeGet(key) || "null");
+      if (saved) return normalizeConfig(saved);
+    } catch (err) {
+      /* ignore malformed storage */
+    }
+  }
+  return null;
+}
+let lump = !OPENED_WITH_DESIGN;
+
 function loadInitialConfig() {
+  if (!OPENED_WITH_DESIGN) return LUMP_CONFIG;
   const params = new URLSearchParams(window.location.search);
   if (params.get("d")) {
     const decoded = decodeConfig(params.get("d"));
@@ -157,7 +194,7 @@ function rebuildPot() {
     scene.remove(potGroup);
     disposePotGroup(potGroup);
   }
-  potGroup = buildPotGroup(config);
+  potGroup = buildPotGroup(config, { rings: 128, sides: 128 }); // denser mesh so freeform sculpting stays smooth
   potScale = fitScale(potGroup);
   potGroup.scale.setScalar(potScale);
   potGroup.position.y = -(potGroup.userData.fit.height * potScale) / 2;
@@ -350,6 +387,7 @@ function stepHistory(delta) {
  */
 function apply(partial, { commit = true, skipEditor = false } = {}) {
   config = normalizeConfig({ ...config, ...partial });
+  lump = false; // any edit means the clay is being worked
   scheduleRebuild();
   refreshUI({ skipEditor });
   persistSoon();
@@ -371,10 +409,11 @@ const vesselGrid = optionGrid(
     html: `<span class="material-symbols-outlined text-[18px]">${VESSELS[id].icon}</span>${VESSELS[id].label}`,
   })),
   (id) => {
-    if (id === config.vessel) return;
+    if (id === config.vessel && !lump) return;
     const fresh = normalizeConfig({
       ...config,
       vessel: id,
+      ...(lump ? { texture: "thrown", surface: "matte" } : {}),
       height: undefined,
       belly: undefined,
       wall: undefined,
@@ -682,7 +721,8 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 /** Syncs every control to the current config. */
 function refreshUI({ skipEditor = false } = {}) {
-  vesselGrid.refresh(config.vessel);
+  vesselGrid.refresh(lump ? "" : config.vessel);
+  $("lump-hint")?.classList.toggle("hidden", !lump);
   neckGrid.refresh(config.neck);
   footGrid.refresh(config.foot);
   handleGrid.refresh(config.handle);
@@ -692,7 +732,7 @@ function refreshUI({ skipEditor = false } = {}) {
   skillGrid.refresh(skill);
   cpatGrid.refresh(config.lab.colorPattern);
   outlineGrid.refresh(config.lab.outline);
-  $("sculpture-forms").classList.toggle("hidden", config.vessel !== "sculpture");
+  $("sculpture-forms").classList.toggle("hidden", lump || config.vessel !== "sculpture");
   if (config.vessel === "sculpture") sculptureFormGrid.refresh(currentSculptureForm());
   const inferred = inferPatternId(config.modulation);
   if (inferred !== null) activePatternId = inferred;
@@ -977,6 +1017,15 @@ function drawVariations() {
 }
 
 function seedVariations() {
+  if (lump) {
+    // Starting points to shape the lump into, all still raw clay.
+    const starts = ["vase", "bowl", "plate", "mug"].map((id) => {
+      const c = configForVessel(id, { clay: config.clay, color: RAW_GLAZE, surface: config.surface, texture: "thrown" });
+      return { name: VESSELS[id].label, rationale: "ขึ้นรูปจากก้อนดินนี้", config: c };
+    });
+    setVariations(starts, -1);
+    return;
+  }
   const others = remixConfig(config, 1, 3);
   setVariations(
     [{ name: variationTitle(config, 0), rationale: variationSubtitle(config), config }, ...others.map((o, i) => ({ ...o, name: variationTitle(o.config, i + 1) }))],
@@ -1172,6 +1221,21 @@ refreshHistoryButtons();
 rebuildPot();
 seedVariations();
 animate();
+
+// "Open last work": the autosave from the previous session, kept until the lump is worked.
+{
+  const btn = $("open-last-btn");
+  const saved = lump ? loadSavedConfig() : null;
+  if (btn && saved) {
+    btn.classList.remove("hidden");
+    btn.addEventListener("click", () => {
+      apply(saved);
+      seedVariations();
+      btn.classList.add("hidden");
+      toast("เปิดงานล่าสุดแล้ว", "history");
+    });
+  }
+}
 
 // Small hook so the page can be inspected / driven from the console and tests.
 /** PNG of the viewport as it is now (brush ring hidden) — used by the create page. */
