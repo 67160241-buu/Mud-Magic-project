@@ -110,6 +110,7 @@ Mud-Magic-project/
 ├── web/
 │   ├── index.html  create.html  studio.html  dashboard.html  login.html
 │   ├── css/style.css
+│   ├── img/                  ← โลโก้ (logo-mark, logo-horizontal, logo-stacked) และ favicon/icon
 │   └── js/
 │       ├── firebase-config.js   ← ค่า Firebase ฝั่งเว็บ
 │       ├── api-client.js        ← window.MudMagicAPI (Firebase Auth + Firestore)
