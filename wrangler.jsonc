@@ -1,0 +1,39 @@
+// Mud Magic on Cloudflare: one Worker serves the static site (./web),
+// accounts + saved designs (/api/*, stored in D1) and the AI helpers (/ai/*).
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "mud-magic",
+	"main": "src/index.js",
+	"compatibility_date": "2026-10-01",
+	"assets": {
+		"directory": "./web",
+		"binding": "ASSETS",
+		"not_found_handling": "404-page",
+		// Keep URLs like /login.html as they are: the pages' scripts check for
+		// ".html" in location.pathname (the default would redirect to /login).
+		"html_handling": "none",
+		// Assets are matched before the Worker runs, and a browser navigation
+		// that matches no file gets the 404 page without reaching the Worker.
+		// These paths must always reach the Worker (e.g. the Google redirect,
+		// and "/" which src/index.js maps to index.html).
+		"run_worker_first": ["/api/*", "/ai/*", "/"]
+	},
+	// Non-secret settings. Secrets (OPENAI_API_KEY, GOOGLE_CLIENT_SECRET) go in
+	// with `npx wrangler secret put …`, and in .dev.vars for local dev.
+	"vars": {
+		"OPENAI_MODEL": "gpt-4o-mini",
+		"GOOGLE_CLIENT_ID": "222356969751-1kujqqkrun1r0v3jg2gqima4flpnij9n.apps.googleusercontent.com"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "mud-magic-db",
+			// Paste the id printed by `npx wrangler d1 create mud-magic-db`.
+			"database_id": "3b3e2eb2-2a8c-4c73-ac19-fdac74eaf4c8",
+			"migrations_dir": "migrations"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}

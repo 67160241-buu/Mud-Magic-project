@@ -385,7 +385,7 @@ function setSkill(level) {
   refreshIdeaNext();
 }
 
-const AI_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
+const AI_BASE = window.MUDMAGIC_API_BASE || ""; // same origin: the Worker serves /ai/*
 let aiOnline = false;
 
 function refreshAiStatus() {

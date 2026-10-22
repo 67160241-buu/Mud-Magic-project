@@ -1141,7 +1141,7 @@ aiAvailable().then((enabled) => {
 /* ------------------------------------------------------------------ */
 // "ทำคอให้สูงขึ้น" → /ai/edit-design → a small config patch, applied through
 // apply() so it lands in undo history like any slider change.
-const API_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
+const API_BASE = window.MUDMAGIC_API_BASE || ""; // same origin: the Worker serves /ai/*
 const cmdForm = $("mm-cmd-form");
 const cmdInput = $("mm-cmd-input");
 const cmdBtn = $("mm-cmd-btn");

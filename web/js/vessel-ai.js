@@ -241,7 +241,7 @@ export function remixConfig(base, seed = 1, count = 4) {
  * Main entry. Always resolves.
  * @returns {Promise<{designs:Array<{name,rationale,config}>, source:"openai"|"offline", notice?:string}>}
  */
-const API_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
+const API_BASE = window.MUDMAGIC_API_BASE || ""; // same origin: the Worker serves /ai/*
 
 /** Turns a server patch ({vessel, height, lab, ...} + pattern id) into a full config. */
 export function configFromPatch(patch = {}, pattern = null, fallbackVessel = "vase") {

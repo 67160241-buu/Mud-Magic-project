@@ -314,8 +314,9 @@ function bindEvents() {
       return;
     }
     if (e.target.closest("[data-logout]")) {
-      api.logout();
-      window.location.href = "index.html";
+      Promise.resolve(api.logout()).finally(() => {
+        window.location.href = "index.html";
+      });
     }
   });
 
@@ -368,7 +369,7 @@ async function boot() {
   try {
     await api.ready();
   } catch (err) {
-    $("dash-loading").innerHTML = `<p class="text-error">${escapeHtml(err.message || "เชื่อมต่อ Firebase ไม่ได้")}</p>`;
+    $("dash-loading").innerHTML = `<p class="text-error">${escapeHtml(err.message || "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้")}</p>`;
     return;
   }
   if (!api.isLoggedIn()) {

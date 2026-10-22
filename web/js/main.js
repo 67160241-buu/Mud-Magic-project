@@ -298,14 +298,10 @@
           submit.disabled = false;
         }
       });
-      overlay.querySelector("[data-mm-google]").addEventListener("click", async () => {
+      overlay.querySelector("[data-mm-google]").addEventListener("click", () => {
         errEl.classList.add("hidden");
-        try {
-          const user = await api.loginWithGoogle();
-          if (user) finish(true, user);
-        } catch (err) {
-          showError(err);
-        }
+        // Full-page redirect to Google; it brings the visitor back to this page signed in.
+        api.loginWithGoogle();
       });
       window.setTimeout(() => form.email.focus(), 50);
     });
@@ -337,9 +333,17 @@
     // Opening studio.html directly (not the Create-page embed) also needs a login.
     const params = new URLSearchParams(location.search);
     if (/studio\.html$/.test(location.pathname) && params.get("embed") !== "1" && window.MudMagicAPI && !window.MudMagicAPI.isLoggedIn()) {
-      requireLogin({ message: "Studio for Pro ใช้ได้เมื่อเข้าสู่ระบบแล้ว งานที่ปั้นจะบันทึกเข้าบัญชีของคุณ" }).then((ok) => {
-        if (!ok) window.location.href = "index.html";
-      });
+      // Check with the server first: just back from Google sign-in, the
+      // session cookie exists but the page hasn't cached the user yet.
+      const api = window.MudMagicAPI;
+      Promise.resolve(api.ready ? api.ready() : null)
+        .catch(() => null)
+        .then(() => {
+          if (api.isLoggedIn()) return;
+          requireLogin({ message: "Studio for Pro ใช้ได้เมื่อเข้าสู่ระบบแล้ว งานที่ปั้นจะบันทึกเข้าบัญชีของคุณ" }).then((ok) => {
+            if (!ok) window.location.href = "index.html";
+          });
+        });
     }
   }
 
@@ -385,6 +389,8 @@
     initTilt();
     initSmoothScroll();
     initAccountNav();
+    // api-client.js re-checks the session with the server on every load.
+    window.addEventListener("mudmagic:auth-changed", initAccountNav);
     initCommunityGallery();
     initStudioGate();
   }

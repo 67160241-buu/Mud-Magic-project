@@ -95,3 +95,15 @@ firebase-service-account*.json
 
 # Local backups made while editing (not part of the site)
 .backup-*/
+
+# ==========================================
+# Cloudflare (wrangler)
+# ==========================================
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+api/.env
+# Firebase export files (contain password hashes / user data)
+scripts/firebase-export/
+seed.sql

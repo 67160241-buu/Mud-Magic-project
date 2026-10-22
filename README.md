@@ -16,43 +16,49 @@
 
 เว็บนี้เป็นเครื่องมือออกแบบและ 3D editor เท่านั้น ไม่มีบริการผลิตหรือจัดส่งชิ้นงาน
 
-## ภาพรวมระบบ
+## ภาพรวมระบบ (Cloudflare)
+
+ทั้งเว็บรันเป็น Cloudflare Worker ตัวเดียวชื่อ `mud-magic` (ตั้งค่าใน `wrangler.jsonc`)
 
 | ส่วน | ทำอะไร |
 |---|---|
-| `web/` | เว็บไซต์ static เสิร์ฟด้วย nginx (Tailwind, three.js 0.160) |
-| Firebase Auth + Firestore | สมัคร/ล็อกอิน (อีเมล และ Google) และเก็บแบบที่บันทึกไว้ในคอลเลกชัน `designs` เบราว์เซอร์คุยกับ Firebase ตรงๆ |
-| `api/` (FastAPI) | ใช้สำหรับ AI เท่านั้น: เก็บ OpenAI key ไว้ฝั่งเซิร์ฟเวอร์ แล้วให้หน้าเว็บเรียกผ่าน `/ai/*` |
+| `web/` | หน้าเว็บ static (Tailwind, three.js 0.160) เสิร์ฟผ่าน Workers Static Assets |
+| `src/auth.js` | `/api/auth/*` สมัคร/ล็อกอินด้วยอีเมล+รหัสผ่าน (PBKDF2) และ Google (OAuth) เซสชันเป็นคุกกี้ `mm_session` (HttpOnly) |
+| `src/index.js` | `/api/designs` บันทึก/ดู/ลบแบบของผู้ใช้ที่ล็อกอิน แล้วส่งที่เหลือไปยังไฟล์ใน `web/` |
+| `src/ai.js` | `/ai/*` เรียก OpenAI ฝั่งเซิร์ฟเวอร์ (key เป็น secret ไม่ถึงเบราว์เซอร์) |
+| D1 `mud-magic-db` | ฐานข้อมูล SQLite ตาราง `users` `sessions` `designs` (สคีมาใน `migrations/`) |
 
-## วิธีรัน
+## วิธีรันในเครื่อง (ต้องใช้ Node 22 ขึ้นไป)
 
 ```bash
-cp api/.env.example api/.env    # ใส่ OPENAI_API_KEY (ถ้ามี)
-docker compose up -d --build
+npm install
+cp .dev.vars.example .dev.vars        # ใส่ OPENAI_API_KEY / GOOGLE_CLIENT_SECRET เอง (ห้าม commit)
+npx wrangler d1 migrations apply mud-magic-db --local
+npx wrangler dev                      # http://localhost:8787
 ```
 
-| Service | URL |
-|---|---|
-| เว็บไซต์ | http://localhost:8080 |
-| API (AI) | http://localhost:8000 · เอกสาร http://localhost:8000/docs |
+แก้ไฟล์ใน `web/` หรือ `src/` แล้ว wrangler โหลดใหม่ให้เอง ข้อมูลในเครื่องอยู่ใน `.wrangler/` (ไม่ขึ้น git)
 
-**การอัปเดตหลังแก้โค้ด**
-- แก้ไฟล์ใน `web/` → กด Ctrl+F5 ในเบราว์เซอร์
-- แก้ Python ใน `api/app/` → `docker compose restart api`
-- แก้ `api/.env` → `docker compose up -d api` (ค่า env ถูกอ่านตอนสร้าง container เท่านั้น `restart` ไม่พอ)
-- แก้ `api/requirements.txt` → `docker compose up -d --build api`
+## ขึ้น Cloudflare ครั้งแรก
 
-**Firebase:** ค่าฝั่งเว็บอยู่ใน `web/js/firebase-config.js` (เปิดเผยได้) กฎความปลอดภัยอยู่ใน `firestore.rules` ส่วนไฟล์ service account (`firebase-service-account*.json`) เป็นความลับ ห้ามขึ้น GitHub (`.gitignore` กันไว้แล้ว)
+```bash
+npx wrangler login
+npx wrangler d1 create mud-magic-db          # คัดลอก database_id ไปใส่ใน wrangler.jsonc
+npx wrangler d1 migrations apply mud-magic-db --remote
+npx wrangler secret put OPENAI_API_KEY
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+npx wrangler deploy
+```
 
-**ระบบบัญชีเดิม (Postgres + Adminer) ถูกเอาออกแล้ว** ตอนนี้การล็อกอินและแบบที่บันทึกใช้ Firebase อย่างเดียว ถ้าเครื่องไหนยังมี volume ข้อมูลเก่าค้างอยู่ ลบได้ด้วย `docker volume ls` (หาชื่อที่ลงท้าย `_pgdata`) แล้ว `docker volume rm <ชื่อ>` ซึ่งลบแล้วกู้คืนไม่ได้
+**Google sign-in:** สร้าง OAuth client (ประเภท Web application) ใน Google Cloud Console → APIs & Services → Credentials ใส่ Client ID ใน `vars.GOOGLE_CLIENT_ID` ของ `wrangler.jsonc` และเพิ่ม Authorized redirect URI เป็น `https://<โดเมนของเว็บ>/api/auth/google/callback` (และ `http://localhost:8787/api/auth/google/callback` สำหรับทดสอบในเครื่อง)
+
+**ย้ายข้อมูลจาก Firebase:** ใช้ `scripts/firebase-to-d1.mjs` (วิธีใช้อยู่หัวไฟล์) ได้ไฟล์ `seed.sql` แล้วรัน `npx wrangler d1 execute mud-magic-db --remote --file seed.sql` รหัสผ่านเดิมของ Firebase ย้ายมาไม่ได้ ผู้ใช้ที่เคยสมัครด้วยอีเมลต้องเข้าด้วย Google (อีเมลเดียวกัน) ส่วนผู้ใช้ Google เข้าได้ตามปกติ
+
+**ระบบเดิม:** `docker-compose.yml`, `api/` (FastAPI), `firebase.json`, `firestore.rules` ยังเก็บไว้จนกว่าเว็บใหม่จะใช้งานได้ครบ แล้วค่อยลบ ข้อมูลใน Firestore ไม่ได้ถูกลบ
 
 ## การตั้งค่า AI (OpenAI)
 
-ใส่ใน `api/.env` แล้วรัน `docker compose up -d api`:
-```
-OPENAI_API_KEY=sk-...        # ห้าม commit ไฟล์นี้
-OPENAI_MODEL=gpt-4o-mini     # ค่าเริ่มต้น
-```
+ใส่ `OPENAI_API_KEY` ใน `.dev.vars` (ในเครื่อง) หรือ `npx wrangler secret put OPENAI_API_KEY` (บน Cloudflare) ส่วนชื่อโมเดลอยู่ที่ `vars.OPENAI_MODEL` ใน `wrangler.jsonc` (ค่าเริ่มต้น `gpt-4o-mini`)
 ถ้าไม่ใส่ key เว็บยังใช้งานได้ โดยใช้โหมดออฟไลน์ที่อ่านคำสำคัญจากไอเดียในเบราว์เซอร์ และหน้าจอจะบอกตามจริงว่าเป็นโหมดออฟไลน์
 
 | Endpoint | ใช้ที่ไหน |
@@ -61,8 +67,9 @@ OPENAI_MODEL=gpt-4o-mini     # ค่าเริ่มต้น
 | `POST /ai/suggest-vessels` | สร้างแบบทั้งชิ้นจากไอเดีย (ทรง โปรไฟล์ รูปทรงหน้าตัด สี ลวดลาย) ใช้ในปุ่ม "ให้ AI ออกแบบ" ของ Create และปุ่มสร้างแบบใน Studio |
 | `POST /ai/edit-design` | แถบสั่ง AI ใน Studio เช่น "ทำคอให้สูงขึ้น เปลี่ยนเป็นสีฟ้า" |
 | `POST /ai/idea` | ช่วยคิดหรือขัดเกลาไอเดียในขั้นแรกของ Create |
+| `POST /ai/suggest-designs` | แบบแก้วมัครุ่นเก่า (ai-design.js) |
 
-AI เสนอได้แค่ค่า ฝั่งเซิร์ฟเวอร์จะกรองฟิลด์ที่อนุญาตและบีบค่าให้อยู่ในช่วงที่ปั้นได้ทุกครั้ง แล้วเบราว์เซอร์ตรวจซ้ำอีกรอบ (`normalizeConfig`) ถ้าเรียก OpenAI ไม่สำเร็จ เหตุผลจะอยู่ใน `docker compose logs api` (บรรทัด `OpenAI call failed`)
+AI เสนอได้แค่ค่า ฝั่งเซิร์ฟเวอร์จะกรองฟิลด์ที่อนุญาตและบีบค่าให้อยู่ในช่วงที่ปั้นได้ทุกครั้ง แล้วเบราว์เซอร์ตรวจซ้ำอีกรอบ (`normalizeConfig`) ถ้าเรียก OpenAI ไม่สำเร็จ เหตุผลจะอยู่ใน log ของ Worker (`npx wrangler tail` หรือหน้า Observability ใน Cloudflare, บรรทัด `OpenAI call failed`)
 
 ---
 
@@ -104,16 +111,17 @@ AI เสนอได้แค่ค่า ฝั่งเซิร์ฟเว�
 
 ```
 Mud-Magic-project/
-├── docker-compose.yml        ← api + web
-├── firebase.json / firestore.rules
-├── nginx/default.conf
+├── wrangler.jsonc  package.json   ← Cloudflare Worker "mud-magic"
+├── src/                      ← index.js (router + /api/designs)  auth.js  ai.js  crypto.js
+├── migrations/0001_init.sql  ← สคีมา D1
+├── scripts/firebase-to-d1.mjs ← ย้ายผู้ใช้/แบบจาก Firebase เป็น seed.sql
+├── docker-compose.yml  nginx/  firebase.json  firestore.rules   ← ระบบเดิม รอลบ
 ├── web/
 │   ├── index.html  create.html  studio.html  dashboard.html  login.html
 │   ├── css/style.css
 │   ├── img/                  ← โลโก้ (logo-mark, logo-horizontal, logo-stacked) และ favicon/icon
 │   └── js/
-│       ├── firebase-config.js   ← ค่า Firebase ฝั่งเว็บ
-│       ├── api-client.js        ← window.MudMagicAPI (Firebase Auth + Firestore)
+│       ├── api-client.js        ← window.MudMagicAPI (เรียก /api/auth และ /api/designs)
 │       ├── api-client.postgres.js (ตัวเชื่อม Postgres เดิม เก็บไว้อ้างอิง)
 │       ├── main.js              ← เมนู สถานะล็อกอิน toast
 │       ├── hero3d.js            ← โมเดล 3D หน้าแรก (สุ่มแบบ)
@@ -128,7 +136,7 @@ Mud-Magic-project/
 │       ├── journey.js           ← หน้า Create
 │       ├── skill-fit.js         ← ลดความยากให้พอดีระดับฝีมือ
 │       ├── dashboard.js  wave.js  mug-model.js
-└── api/
+└── api/                      ← FastAPI เดิม (ย้ายไป src/ แล้ว รอลบ)
     ├── Dockerfile  entrypoint.sh  requirements.txt  .env.example
     ├── alembic/  scripts/migrate_to_firebase.py   ← ของระบบ Postgres เดิม ไม่ได้ใช้แล้ว
     ├── app/
@@ -142,7 +150,7 @@ Mud-Magic-project/
 
 ## ความลับที่ห้ามขึ้น GitHub
 
-`.gitignore` กันไว้แล้ว: `api/.env` (OpenAI key), `firebase-service-account*.json`, `*.pem`, `*.key` และโฟลเดอร์สำรอง `.backup-*/` ก่อน commit ให้ดู `git status` ทุกครั้งว่าไม่มีไฟล์เหล่านี้ในรายการ
+`.gitignore` กันไว้แล้ว: `.dev.vars` และ `api/.env` (OpenAI key / Google secret), `.wrangler/`, `node_modules/`, `seed.sql`, `firebase-service-account*.json`, `*.pem`, `*.key` และโฟลเดอร์สำรอง `.backup-*/` ก่อน commit ให้ดู `git status` ทุกครั้งว่าไม่มีไฟล์เหล่านี้ในรายการ
 
 ```bash
 git add -A

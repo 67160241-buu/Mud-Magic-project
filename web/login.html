@@ -135,7 +135,7 @@
 <script src="js/api-client.js"></script>
 <script src="js/main.js?v=2"></script>
 <script>
-  // Sign-in and sign-up against Firebase Authentication (see js/api-client.js).
+  // Sign-in and sign-up against the site's own /api/auth endpoints (see js/api-client.js).
   // One form, two modes: "login" only signs in to an existing account;
   // "signup" adds a display name + password confirmation and creates one.
   (function () {
@@ -248,23 +248,28 @@
       }
     });
 
-    // Google works for both tabs: Firebase creates the account on first use.
+    // Google works for both tabs: the account is created on first use.
+    // It's a full-page redirect; Google sends the visitor back to NEXT_PAGE.
     const googleBtn = document.getElementById("google-signin");
-    googleBtn.addEventListener("click", async () => {
+    googleBtn.addEventListener("click", () => {
       googleBtn.disabled = true;
-      try {
-        const user = await window.MudMagicAPI.loginWithGoogle();
-        if (!user) return; // popup closed
-        window.MudMagic?.showToast(`เข้าสู่ระบบในชื่อ ${user.username}`, { icon: "check_circle" });
-        window.setTimeout(() => {
-          window.location.href = NEXT_PAGE;
-        }, 500);
-      } catch (err) {
-        window.MudMagic?.showToast(err.message || "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง", { icon: "error" });
-      } finally {
-        googleBtn.disabled = false;
-      }
+      window.MudMagicAPI.loginWithGoogle(NEXT_PAGE);
     });
+
+    // Coming back from a Google sign-in that didn't work.
+    const GOOGLE_ERRORS = {
+      google_cancelled: "ยกเลิกการเข้าสู่ระบบด้วย Google แล้ว",
+      google_state: "การเข้าสู่ระบบด้วย Google หมดเวลา กรุณาลองใหม่",
+      google_unverified: "บัญชี Google นี้ยังไม่ได้ยืนยันอีเมล",
+      google_failed: "เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่",
+      google_config: "ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google บนเซิร์ฟเวอร์",
+    };
+    const googleError = new URLSearchParams(location.search).get("error");
+    if (googleError) {
+      window.setTimeout(() => {
+        window.MudMagic?.showToast(GOOGLE_ERRORS[googleError] || GOOGLE_ERRORS.google_failed, { icon: "error" });
+      }, 300);
+    }
   })();
 </script>
 </body>

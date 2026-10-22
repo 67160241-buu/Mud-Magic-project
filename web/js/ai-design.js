@@ -10,7 +10,7 @@
 // Callers get designs either way and can tell which by checking `.source`.
 import { PATTERNS, DEFAULT_MODULATION, GLAZES, SHAPES, HANDLES, SURFACES } from "./mug-model.js";
 
-const API_BASE = window.MUDMAGIC_API_BASE || "http://localhost:8000";
+const API_BASE = window.MUDMAGIC_API_BASE || ""; // same origin: the Worker serves /ai/*
 
 let statusCache = null;
 
